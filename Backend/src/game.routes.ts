@@ -12,9 +12,18 @@ router.get('/external/search', async (req, res) => {
     return
   }
 
+  const limitParam = typeof req.query.limit === 'string' ? req.query.limit : undefined
+  const offsetParam = typeof req.query.offset === 'string' ? req.query.offset : undefined
+  const limit = limitParam === undefined ? 20 : Number(limitParam)
+  const offset = offsetParam === undefined ? 0 : Number(offsetParam)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50 || !Number.isSafeInteger(offset) || offset < 0) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'limit 必須是 1 到 50 的整數，offset 必須是非負整數' } })
+    return
+  }
+
   try {
-    const games = await searchGames(query)
-    res.json({ success: true, games })
+    const games = await searchGames(query, limit, offset)
+    res.json({ success: true, games, pagination: { limit, offset, hasMore: games.length === limit } })
   } catch (error) {
     console.error('IGDB game search failed', error instanceof Error ? error.message : 'Unknown error')
     res.status(502).json({ success: false, code: 'EXTERNAL_SERVICE_ERROR', message: '遊戲搜尋服務暫時無法使用' })
