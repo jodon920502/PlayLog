@@ -1,0 +1,28 @@
+.app-shell { min-height: 100vh; background: radial-gradient(circle at 74% 0%, #1c2233 0%, #0b0d13 32rem); }
+.page-width { width: min(1240px, calc(100% - 48px)); margin: 0 auto; }
+.nav-link { color: #a5a8b3; font-size: 14px; font-weight: 500; transition: color .2s; }
+.nav-link:hover, .nav-link.active { color: #f5c84b; }
+.hero-glow { position: absolute; inset: 0; background: linear-gradient(90deg, #11141d 0%, rgba(17,20,29,.7) 35%, rgba(17,20,29,.22) 70%, #11141d 100%), linear-gradient(0deg, #11141d 0%, transparent 35%); }
+.hero-image { position: absolute; inset: 0; background: center / cover no-repeat; opacity: .8; }
+.section-label { color: #f5c84b; letter-spacing: .13em; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.gold-button { background: #f2c544; color: #12130f; font-weight: 700; transition: transform .2s, background .2s; }
+.gold-button:hover { background: #ffd85f; transform: translateY(-1px); }
+.ghost-button { border: 1px solid rgba(255,255,255,.16); color: #e6e4de; transition: background .2s, border .2s; }
+.ghost-button:hover { border-color: rgba(242,197,68,.55); background: rgba(242,197,68,.08); }
+.rating-dot { background: #f2c544; width: 5px; height: 5px; border-radius: 999px; display: inline-block; }
+.poster-shine { background: linear-gradient(130deg, rgba(255,255,255,.15), transparent 34%); }
+.score-ring { box-shadow: inset 0 0 0 2px #f2c544; }
+.filter-select { appearance: none; background: #171a23; border: 1px solid #292d38; color: #d6d5d0; }
+.login-page { position: relative; overflow: hidden; background: radial-gradient(circle at 50% -10%, #222b45 0%, #0b0d13 46rem); }
+.login-card { border: 1px solid rgba(255,255,255,.09); background: rgba(19,22,31,.86); box-shadow: 0 24px 80px rgba(0,0,0,.35); backdrop-filter: blur(18px); }
+.login-input { border: 1px solid #2d323e; background: #12151d; transition: border-color .2s, box-shadow .2s; }
+.login-input:focus-within { border-color: rgba(242,197,68,.72); box-shadow: 0 0 0 3px rgba(242,197,68,.1); }
+.login-orb { position: absolute; border-radius: 999px; filter: blur(2px); opacity: .18; pointer-events: none; }
+.login-orb-one { top: 18%; left: 16%; width: 220px; height: 220px; background: #f2c544; filter: blur(100px); }
+.login-orb-two { right: 12%; bottom: 10%; width: 260px; height: 260px; background: #4766d8; filter: blur(120px); }
+
+@media (max-width: 700px) {
+  .page-width { width: min(100% - 28px, 1240px); }
+  .hero-content { padding-top: 190px; }
+  .hero-title { font-size: 42px !important; }
+}
