@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage'
 import ProfileEditPage from './pages/ProfileEditPage'
 import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
+import SearchPage from './pages/SearchPage'
+import GameDetailPage from './pages/GameDetailPage'
+import AboutPage from './pages/AboutPage'
 
 function App() {
   return (
@@ -17,6 +20,9 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile/:profileId" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/game/:gameId" element={<GameDetailPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
