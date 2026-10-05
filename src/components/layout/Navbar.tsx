@@ -1,5 +1,5 @@
 import { Bell, ChevronDown, LogOut, Menu, PenLine, Search, User, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -16,6 +16,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [autocompleteResults, setAutocompleteResults] = useState<Awaited<ReturnType<typeof searchGames>>>([])
   const { user, profile, isAuthenticated, isLoading, logout } = useAuth()
 
   useEffect(() => {
@@ -42,10 +43,22 @@ export default function Navbar() {
     setHighlightedIndex(-1)
   }, [location.pathname, searchParams])
 
-  const autocompleteResults = useMemo(
-    () => searchQuery.trim() ? searchGames(searchQuery).slice(0, 5) : [],
-    [searchQuery],
-  )
+  useEffect(() => {
+    let cancelled = false
+    const query = searchQuery.trim()
+    if (!query) {
+      setAutocompleteResults([])
+      return () => { cancelled = true }
+    }
+    searchGames(query)
+      .then((games) => {
+        if (!cancelled) setAutocompleteResults(games.slice(0, 5))
+      })
+      .catch(() => {
+        if (!cancelled) setAutocompleteResults([])
+      })
+    return () => { cancelled = true }
+  }, [searchQuery])
   const showSearchDropdown = searchFocused && Boolean(searchQuery.trim())
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -154,10 +167,10 @@ export default function Navbar() {
                         onMouseEnter={() => setHighlightedIndex(index)}
                         className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${highlightedIndex === index ? 'bg-white/10' : 'hover:bg-white/5'}`}
                       >
-                        <img src={game.cover} alt="" className="h-11 w-9 shrink-0 rounded object-cover" />
+                        {game.cover || game.coverImageId ? <img src={game.cover ?? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.coverImageId}.jpg`} alt="" className="h-11 w-9 shrink-0 rounded object-cover" /> : <span className="h-11 w-9 shrink-0 rounded bg-[#20232d]" />}
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-semibold text-[#eeece5]">{game.name}</span>
-                          <span className="mt-1 block truncate text-[10px] text-[#777b86]">{game.genre}</span>
+                          <span className="block truncate text-xs font-semibold text-[#eeece5]">{game.displayName ?? game.name}</span>
+                          <span className="mt-1 block truncate text-[10px] text-[#777b86]">{game.genres?.[0]?.name ?? game.genre ?? '遊戲'}</span>
                         </span>
                       </button>
                     ))}

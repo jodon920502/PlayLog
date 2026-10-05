@@ -4,6 +4,7 @@ import express from 'express'
 import { pool } from './db.js'
 import authRoutes from './auth.routes.js'
 import profileRoutes from './profile.routes.js'
+import gameRoutes from './game.routes.js'
 
 const app = express()
 const PORT = 3000
@@ -28,6 +29,7 @@ app.get('/api/db-test', async (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', profileRoutes)
+app.use('/api/games', gameRoutes)
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (error instanceof SyntaxError && 'status' in error && error.status === 400) {

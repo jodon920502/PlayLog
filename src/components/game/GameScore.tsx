@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react'
 
-export default function GameScore({ score, compact = false }: { score: number; compact?: boolean }) {
+export default function GameScore({ score, compact = false }: { score?: number; compact?: boolean }) {
+  if (score === undefined) return <span className="text-[11px] text-[#777c88]">尚無評分</span>
   return <div className={`flex items-center gap-1.5 ${compact ? 'text-sm' : 'text-base'}`}><Star size={compact ? 14 : 16} fill="#f2c544" color="#f2c544" /><span className="font-bold text-[#f2c544]">{score.toFixed(1)}</span></div>
 }
