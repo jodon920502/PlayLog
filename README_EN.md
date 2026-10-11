@@ -1,10 +1,11 @@
+
 # PlayLog
 
 [繁體中文](README.md) | [English](README.en.md)
 
-**PlayLog** is a game-focused discovery and community review website. Players can search for and browse games, read community ratings, publish their own scores or written impressions after signing in, and showcase their reviews on their profile pages.
+**PlayLog** is a game discovery, review, and player community website. Players can explore games, browse community ratings and rankings, publish reviews, save favorites, manage a personal game library, and showcase their activity on public profiles.
 
-> This project is under active development. Some navigation items and features (such as collections and leaderboards) are not yet complete; a visible navigation entry does not necessarily mean the feature is available.
+> This project remains under active development. Local development and testing support does not imply a publicly launched service.
 
 ## Features
 
@@ -20,7 +21,14 @@
 | Create, edit, delete reviews and average ratings | Implemented |
 | Review publication/edit timestamps and status labels | Implemented |
 | Public review lists on profiles with paginated loading | Implemented |
-| Collections, leaderboards, and other extended features | Planned / incomplete |
+| Public review feed, sorting, and pagination | Implemented |
+| Game rankings calculated from PlayLog user reviews | Implemented |
+| Game favorites and favorites list | Implemented |
+| Personal game library with five play statuses (wishlist, playing, completed, paused, dropped) | Implemented |
+| Game library status counts, filtering, and pagination | Implemented |
+| Public/private game library settings (backend-enforced access) | Implemented |
+| Profile tabs for reviews, game library, and favorites | Implemented |
+| Responsive UI, page SEO, Open Graph, logo, and favicon | Implemented |
 
 ### Review rules
 
@@ -45,13 +53,13 @@
 ### Project structure
 
 ```text
-Playscoop/
+PlayLog/
 ├── src/                       # React frontend
 ├── Backend/
 │   ├── src/
 │   │   ├── config/            # Database configuration
 │   │   ├── middleware/        # Authentication middleware
-│   │   ├── modules/           # auth / games / profiles / reviews
+│   │   ├── modules/           # auth / games / profiles / reviews / game-statuses, etc.
 │   │   └── integrations/      # IGDB / Steam
 │   ├── database/
 │   │   ├── README.md          # Database setup guide
@@ -60,8 +68,14 @@ Playscoop/
 │   │   │   └── playlog_db.sql
 │   │   └── migrations/
 │   │       └── playlog_db/
-│   │           └── 001_create_reviews.sql
+│   │           ├── 001_create_reviews.sql
+│   │           ├── ...                 # Historical migrations, including favorites
+│   │           ├── 005_create_user_game_statuses.sql
+│   │           └── 006_add_game_library_privacy.sql
 │   └── package.json
+├── public/images/             # PlayLog icons and favicons
+├── src/pages/                 # Pages including LibraryPage
+├── src/components/seo/        # SEO component
 ├── package.json
 ├── README.md
 └── README.en.md
@@ -74,7 +88,7 @@ The project uses **two separate PostgreSQL databases**, keeping account data sep
 | Database | Tables | Purpose |
 | --- | --- | --- |
 | `account_db` | `users`, `user_credentials`, `user_sessions` | Accounts, credentials, and sessions |
-| `playlog_db` | `games`, `game_external_ids`, `game_localizations`, `genres`, `game_genres`, `platforms`, `game_platforms`, `profiles`, `reviews` | Games, genres, platforms, player profiles, and reviews |
+| `playlog_db` | `games`, `game_external_ids`, `game_localizations`, `genres`, `game_genres`, `platforms`, `game_platforms`, `profiles`, `reviews`, `game_favorites`, `user_game_statuses` | Games, genres, platforms, profiles, reviews, favorites, and game libraries |
 
 The two `schemas/*.sql` files were exported with PostgreSQL 16.15 using `pg_dump --schema-only --no-owner --no-privileges`. They include tables, indexes, constraints, functions, and triggers, but **no actual data rows**. There are no cross-database foreign keys between the two databases.
 
@@ -108,7 +122,7 @@ psql -h localhost -U YOUR_DB_USER -d playlog_db -f Backend/database/schemas/play
 
 > Replace `YOUR_DB_USER` with a role that has permission to create database objects. If PostgreSQL runs only inside Docker, use `docker cp` to copy the SQL files and `docker exec ... psql -f` to apply them. See [`Backend/database/README.md`](Backend/database/README.md).
 >
-> **Important:** The full `playlog_db.sql` already contains the `reviews` table. **Do not rerun** `001_create_reviews.sql` after restoring the full schema. The migration is a historical change record, not an extra step required after a full schema restore.
+> **Important:** The full `playlog_db.sql` is a snapshot of the current database structure. After initializing from it, **do not rerun migrations already included in the schema**, including reviews, favorites, game statuses, and privacy fields. Migrations are intended to upgrade existing databases; check the current schema before applying them.
 
 ### Run locally
 
@@ -142,7 +156,7 @@ npm --prefix Backend run build
 | `DELETE` | `/api/reviews/:reviewId` | Delete your own review |
 | `GET` | `/api/profile/:profileId/reviews` | List a player's public reviews (`limit` / `offset` supported) |
 
-These are selected endpoints. Consult the backend route implementations for complete parameters and response formats.
+Favorites, game statuses, and profile game libraries have additional APIs. These are selected known endpoints; consult the backend route implementations for exact paths, parameters, and response formats.
 
 ## Development and data security
 
@@ -153,4 +167,4 @@ These are selected endpoints. Consult the backend route implementations for comp
 
 ## Project status
 
-PlayLog is an actively developed personal project. Its current focus is game discovery, community reviews, and player review histories, with additional community features planned for later development.
+PlayLog is an actively developed personal project covering game discovery, community reviews, rankings, favorites, personal game libraries, and player profiles. Potential future features include player interactions and game statistics; these are not yet implemented.

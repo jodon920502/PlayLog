@@ -1,10 +1,11 @@
+
 # PlayLog
 
-[繁體中文](README.md) | [English](README_EN.md)
+[繁體中文](README.md) | [English](README.en.md)
 
-**PlayLog** 是一個以遊戲為核心的玩家評測與探索網站。玩家可以搜尋與瀏覽遊戲、查看社群評分，登入後發表自己的評分或心得，並在個人頁面展示評測紀錄。
+**PlayLog** 是一個以遊戲為核心的探索、評測與玩家社群網站。玩家可以搜尋遊戲、瀏覽社群評分與排行榜，登入後發表評測、收藏遊戲、管理自己的遊戲庫，並透過個人檔案展示遊戲紀錄。
 
-> 專案仍在開發中。部分導覽項目與功能（例如收藏、排行榜）尚未完成，請勿將介面上的入口視為已正式上線。
+> 專案仍持續開發中；目前提供本機開發與測試，並不代表已正式對外營運。
 
 ## 主要功能
 
@@ -20,7 +21,14 @@
 | 評測新增、編輯、刪除與平均分數 | 已實作 |
 | 評測發表時間、編輯時間及狀態標示 | 已實作 |
 | 個人頁面公開評測清單及分頁載入 | 已實作 |
-| 收藏清單、排行榜等延伸功能 | 規劃中／尚未完成 |
+| 公開玩家評測列表、排序與分頁 | 已實作 |
+| 根據 PlayLog 玩家評測計算的遊戲排行榜 | 已實作 |
+| 遊戲收藏與收藏清單 | 已實作 |
+| 我的遊戲庫與遊玩狀態（想玩、遊玩中、已完成、暫停、已棄坑） | 已實作 |
+| 遊戲庫狀態統計、篩選與分頁 | 已實作 |
+| 個人遊戲庫公開／私人設定（後端權限控管） | 已實作 |
+| 個人頁評測／遊戲庫／收藏分頁切換 | 已實作 |
+| 響應式介面、頁面 SEO、Open Graph、Logo 與 Favicon | 已實作 |
 
 ### 評測規則
 
@@ -45,13 +53,13 @@
 ### 專案目錄
 
 ```text
-Playscoop/
+PlayLog/
 ├── src/                       # React 前端
 ├── Backend/
 │   ├── src/
 │   │   ├── config/            # 資料庫設定
 │   │   ├── middleware/        # 驗證中介層
-│   │   ├── modules/           # auth / games / profiles / reviews
+│   │   ├── modules/           # auth / games / profiles / reviews / game-statuses 等
 │   │   └── integrations/      # IGDB / Steam
 │   ├── database/
 │   │   ├── README.md          # 資料庫操作說明
@@ -60,8 +68,14 @@ Playscoop/
 │   │   │   └── playlog_db.sql
 │   │   └── migrations/
 │   │       └── playlog_db/
-│   │           └── 001_create_reviews.sql
+│   │           ├── 001_create_reviews.sql
+│   │           ├── ...                 # 收藏等歷史 Migration
+│   │           ├── 005_create_user_game_statuses.sql
+│   │           └── 006_add_game_library_privacy.sql
 │   └── package.json
+├── public/images/             # PlayLog Icon / Favicon
+├── src/pages/                 # LibraryPage 等頁面
+├── src/components/seo/        # SEO 元件
 ├── package.json
 ├── README.md
 └── README.en.md
@@ -74,7 +88,7 @@ Playscoop/
 | Database | 資料表 | 用途 |
 | --- | --- | --- |
 | `account_db` | `users`、`user_credentials`、`user_sessions` | 帳號、登入憑證與 Session |
-| `playlog_db` | `games`、`game_external_ids`、`game_localizations`、`genres`、`game_genres`、`platforms`、`game_platforms`、`profiles`、`reviews` | 遊戲、分類、平台、玩家資料與評測 |
+| `playlog_db` | `games`、`game_external_ids`、`game_localizations`、`genres`、`game_genres`、`platforms`、`game_platforms`、`profiles`、`reviews`、`game_favorites`、`user_game_statuses` | 遊戲、分類、平台、玩家資料、評測、收藏與遊戲庫 |
 
 兩份 `schemas/*.sql` 由 PostgreSQL 16.15 的 `pg_dump --schema-only --no-owner --no-privileges` 匯出，包含資料表、索引、約束、函式與 Trigger，**不包含任何實際資料列**。兩個 Database 之間不使用跨資料庫外鍵。
 
@@ -108,7 +122,7 @@ psql -h localhost -U YOUR_DB_USER -d playlog_db -f Backend/database/schemas/play
 
 > `YOUR_DB_USER` 請替換成具備建表權限的使用者。若 PostgreSQL 只安裝在 Docker Container 中，可透過 `docker cp` 複製 SQL，再以 `docker exec ... psql -f` 執行。請參考 [`Backend/database/README.md`](Backend/database/README.md)。
 >
-> **重要：** 完整 `playlog_db.sql` 已包含 `reviews` 表；初始化後**不要再執行** `001_create_reviews.sql`。Migration 是歷史變更紀錄，不是完整 Schema 還原後必須重跑的步驟。
+> **重要：** 完整 `playlog_db.sql` 是目前資料庫結構的快照。若使用此 Schema 初始化，請勿再重複執行已包含其中的 Migration（包括評測、收藏、遊戲狀態與隱私欄位）。Migration 用於將既有資料庫逐步升級；實際執行前請確認版本與現有結構。
 
 ### 啟動
 
@@ -142,7 +156,7 @@ npm --prefix Backend run build
 | `DELETE` | `/api/reviews/:reviewId` | 刪除自己的評測 |
 | `GET` | `/api/profile/:profileId/reviews` | 讀取玩家公開評測（支援 `limit`／`offset`） |
 
-以上為主要端點節錄；完整參數與回應格式以 Backend 路由實作為準。
+另有收藏、遊戲狀態與個人遊戲庫相關 API。以上僅為已知端點節錄；完整路徑、參數與回應格式以 Backend 路由實作為準。
 
 ## 開發與資料安全
 
@@ -153,4 +167,4 @@ npm --prefix Backend run build
 
 ## 專案狀態
 
-PlayLog 為持續開發中的個人專案。目前以遊戲探索、玩家評測及個人評測紀錄為主要功能，後續將逐步擴充其他社群功能。
+PlayLog 為持續開發中的個人專案，目前已涵蓋遊戲探索、玩家評測、排行榜、收藏、遊戲庫及個人檔案。未來可能擴充玩家互動、遊戲統計等功能；這些規劃尚不代表已實作。
