@@ -1,7 +1,7 @@
 import type { PoolClient, QueryResultRow } from 'pg'
-import { playlogPool } from './db.js'
-import { getGameByIgdbId, getSteamAppIdByIgdbId, type IgdbGame } from './igdb.service.js'
-import { getSteamStoreLocalization } from './steam.service.js'
+import { playlogPool } from '../../config/db.js'
+import { getGameByIgdbId, getSteamAppIdByIgdbId, type IgdbGame } from '../../integrations/igdb.service.js'
+import { getSteamStoreLocalization } from '../../integrations/steam.service.js'
 
 const IGDB_SOURCE = 'IGDB'
 const STEAM_SOURCE = 'STEAM'

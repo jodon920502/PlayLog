@@ -1,7 +1,7 @@
 import argon2 from 'argon2'
 import type { Request } from 'express'
 import { isIP } from 'node:net'
-import { pool } from './db.js'
+import { pool } from '../../config/db.js'
 import { createAccessToken, createRefreshToken, hashRefreshToken, REFRESH_TOKEN_TTL_MS } from './token.service.js'
 
 export interface RegisterInput {

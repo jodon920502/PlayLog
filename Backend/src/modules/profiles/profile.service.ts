@@ -1,4 +1,6 @@
-import { pool, playlogPool } from './db.js'
+import { pool, playlogPool } from '../../config/db.js'
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export interface ProfileRecord {
   id: string
@@ -31,6 +33,17 @@ export interface PublicProfileResponse {
   createdAt: string
 }
 
+export interface ProfileReviewResponse {
+  id: string
+  gameId: string
+  gameName: string
+  coverImageId: string | null
+  rating: number
+  content: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export class ProfileError extends Error {
   constructor(
     public readonly code: 'VALIDATION_ERROR' | 'NOT_FOUND',
@@ -38,6 +51,43 @@ export class ProfileError extends Error {
   ) {
     super(message)
   }
+}
+
+interface ProfileReviewRow {
+  id: string
+  game_id: string
+  game_name: string
+  cover_image_id: string | null
+  rating: string
+  content: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+function mapProfileReview(row: ProfileReviewRow): ProfileReviewResponse {
+  return {
+    id: row.id,
+    gameId: row.game_id,
+    gameName: row.game_name,
+    coverImageId: row.cover_image_id,
+    rating: Number(row.rating),
+    content: row.content,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  }
+}
+
+function parseReviewPagination(limitValue: unknown, offsetValue: unknown): { limit: number; offset: number } {
+  const limit = limitValue === undefined ? 10 : Number(limitValue)
+  const offset = offsetValue === undefined ? 0 : Number(offsetValue)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger(offset) || offset < 0) {
+    throw new ProfileError('VALIDATION_ERROR', 'limit 必須是 1 到 100 的整數，offset 必須是非負整數')
+  }
+  return { limit, offset }
+}
+
+function isValidUuid(value: string): boolean {
+  return UUID_PATTERN.test(value)
 }
 
 function mapProfile(row: ProfileRecord): ProfileResponse {
@@ -174,6 +224,38 @@ export async function getPublicProfile(profileId: string): Promise<PublicProfile
   )
 
   return result.rows[0] ? mapPublicProfile(result.rows[0]) : null
+}
+
+export async function listProfileReviews(
+  profileId: string,
+  limitValue: unknown,
+  offsetValue: unknown,
+): Promise<{ reviews: ProfileReviewResponse[]; hasMore: boolean; limit: number; offset: number }> {
+  if (!isValidUuid(profileId)) {
+    throw new ProfileError('VALIDATION_ERROR', 'Profile ID 格式不正確')
+  }
+  const { limit, offset } = parseReviewPagination(limitValue, offsetValue)
+  const result = await playlogPool.query<ProfileReviewRow>(
+    `SELECT r.id, r.game_id,
+            COALESCE(gl.name, g.name) AS game_name,
+            g.cover_image_id,
+            r.rating::text, r.content, r.created_at, r.updated_at
+     FROM reviews r
+     INNER JOIN profiles p ON p.account_user_id = r.user_id
+     INNER JOIN games g ON g.id = r.game_id
+     LEFT JOIN game_localizations gl
+       ON gl.game_id = g.id AND gl.locale = $2
+     WHERE p.id = $1
+     ORDER BY r.created_at DESC, r.id DESC
+     LIMIT $3 OFFSET $4`,
+    [profileId, 'zh-TW', limit, offset],
+  )
+  return {
+    reviews: result.rows.map(mapProfileReview),
+    hasMore: result.rows.length === limit,
+    limit,
+    offset,
+  }
 }
 
 export async function updateMyProfile(userId: string, body: unknown): Promise<ProfileResponse> {

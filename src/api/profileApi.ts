@@ -20,9 +20,36 @@ export interface PublicProfile {
   createdAt: string
 }
 
+export interface ProfileReview {
+  id: string
+  gameId: string
+  gameName: string
+  coverImageId: string | null
+  rating: number
+  content: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProfileReviewPage {
+  reviews: ProfileReview[]
+  pagination: {
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+}
+
 interface ProfileApiResponse<T> {
   success: boolean
   profile?: T
+  message?: string
+}
+
+interface ProfileReviewsApiResponse {
+  success: boolean
+  reviews?: ProfileReview[]
+  pagination?: ProfileReviewPage['pagination']
   message?: string
 }
 
@@ -75,4 +102,14 @@ export async function getPublicProfile(profileId: string): Promise<PublicProfile
   }
 
   return data.profile
+}
+
+export async function getProfileReviews(profileId: string, limit = 10, offset = 0): Promise<ProfileReviewPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const response = await fetch(`${API_URL}/api/profile/${encodeURIComponent(profileId)}/reviews?${params}`, { credentials: 'include' })
+  const data = await response.json() as ProfileReviewsApiResponse
+  if (!response.ok || !data.success || !data.reviews || !data.pagination) {
+    throw new Error(data.message ?? '無法取得玩家評測')
+  }
+  return { reviews: data.reviews, pagination: data.pagination }
 }

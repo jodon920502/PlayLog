@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import pg from 'pg'
 
 const { Pool } = pg
-dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env') })
+dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') })
 
 const requiredEnv = ['DB_HOST', 'DB_PORT', 'Account_DB_NAME', 'Playlog_DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET'] as const
 for (const key of requiredEnv) {
@@ -29,4 +29,3 @@ export const playlogPool = new Pool({
   ...sharedPoolConfig,
   database: process.env.Playlog_DB_NAME,
 })
-

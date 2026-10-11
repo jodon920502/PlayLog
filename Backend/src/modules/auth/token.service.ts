@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import jwt from 'jsonwebtoken'
-import './db.js'
+import '../../config/db.js'
 
 const jwtSecret = process.env.JWT_SECRET
 if (!jwtSecret) {

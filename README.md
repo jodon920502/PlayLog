@@ -1,230 +1,156 @@
-# 🎮 PlayLog
+# PlayLog
 
-> 一個以玩家為核心的遊戲社群平台，用於探索遊戲、分享評測與評分，並建立屬於自己的遊戲歷程。
+[繁體中文](README.md) | [English](README_EN.md)
 
-[English](./README_EN.md) | 繁體中文
+**PlayLog** 是一個以遊戲為核心的玩家評測與探索網站。玩家可以搜尋與瀏覽遊戲、查看社群評分，登入後發表自己的評分或心得，並在個人頁面展示評測紀錄。
 
-## 📖 關於 PlayLog
+> 專案仍在開發中。部分導覽項目與功能（例如收藏、排行榜）尚未完成，請勿將介面上的入口視為已正式上線。
 
-PlayLog 是一個以玩家與遊戲體驗為核心所打造的遊戲社群平台。
+## 主要功能
 
-PlayLog 的目標是提供一個讓玩家能夠探索遊戲、分享評分與評測、記錄自己玩過的遊戲，並建立個人遊戲檔案的平台。
+| 功能 | 目前狀態 |
+| --- | --- |
+| 遊戲搜尋、匯入與詳細資訊 | 已實作 |
+| IGDB 遊戲資料及 Steam 資訊整合 | 已實作 |
+| 遊戲名稱／簡介本地化資料 | 已實作 |
+| 帳號登入、JWT Access Token 與 Refresh Token Session | 已實作 |
+| 玩家個人資料、頭像／封面／自我介紹 | 已實作 |
+| 評分（0.5–5.0，每次 0.5 分） | 已實作 |
+| 評測心得（可只評分、不填文字） | 已實作 |
+| 評測新增、編輯、刪除與平均分數 | 已實作 |
+| 評測發表時間、編輯時間及狀態標示 | 已實作 |
+| 個人頁面公開評測清單及分頁載入 | 已實作 |
+| 收藏清單、排行榜等延伸功能 | 規劃中／尚未完成 |
 
-PlayLog 不只是單純的遊戲資訊資料庫，而是更加著重於玩家產生的內容，以及每位玩家自己的遊戲體驗與歷程。
+### 評測規則
 
-> 🚧 本專案目前仍在持續開發中。
+- 所有人皆可閱讀公開評測；**新增、修改、刪除評測需登入**。
+- 每位玩家對同一款遊戲只能保有**一筆**評測，但可反覆修改。
+- 可以只給分數，也可以另外撰寫最多 **5,000 字元**的心得。
+- 評分限定 **0.5～5.0**，間隔 **0.5**。
+- 玩家只能編輯或刪除自己的評測；權限由後端驗證。
+- 有評測的遊戲受到外鍵 `ON DELETE RESTRICT` 保護，避免刪除遊戲時連帶遺失評測。
 
-## ✨ 主要功能
+## 技術架構
 
-### 已完成
+| 層級 | 技術 |
+| --- | --- |
+| Frontend | React、TypeScript、Vite、Tailwind CSS、React Router |
+| Backend | Node.js、Express 5、TypeScript |
+| Database | PostgreSQL 16（Docker 開發環境） |
+| 驗證 | Argon2id、JWT Access Token、HttpOnly Refresh Token Cookie |
+| 外部資料 | IGDB API、Steam API |
+| 資料庫連線 | `pg`（node-postgres） |
 
-- ✅ 使用者註冊與登入
-- ✅ JWT 身分驗證
-- ✅ Refresh Token Session
-- ✅ 安全的 HttpOnly Refresh Token Cookie
-- ✅ 使用者個人檔案
-- ✅ 個人檔案編輯
-- ✅ 根據登入狀態切換的導覽列
-- ✅ PostgreSQL 資料庫整合
-
-### 預計開發
-
-- ⬜ 遊戲資料庫
-- ⬜ IGDB API 整合
-- ⬜ 遊戲探索與搜尋
-- ⬜ 玩家評分
-- ⬜ 遊戲評測
-- ⬜ 遊戲收藏
-- ⬜ 個人遊戲歷程
-- ⬜ 社群功能
-
-## 🛠️ 技術架構
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-
-### Backend
-
-- Node.js
-- TypeScript
-- Express
-
-### Database & Infrastructure
-
-- PostgreSQL
-- Docker
-
-## 🗄️ 資料庫架構
-
-PlayLog 將共用帳號與身分驗證系統，和應用程式專屬資料分開管理。
+### 專案目錄
 
 ```text
-account_db
-├── users
-├── user_credentials
-└── user_sessions
-
-playlog_db
-└── profiles
+Playscoop/
+├── src/                       # React 前端
+├── Backend/
+│   ├── src/
+│   │   ├── config/            # 資料庫設定
+│   │   ├── middleware/        # 驗證中介層
+│   │   ├── modules/           # auth / games / profiles / reviews
+│   │   └── integrations/      # IGDB / Steam
+│   ├── database/
+│   │   ├── README.md          # 資料庫操作說明
+│   │   ├── schemas/
+│   │   │   ├── account_db.sql
+│   │   │   └── playlog_db.sql
+│   │   └── migrations/
+│   │       └── playlog_db/
+│   │           └── 001_create_reviews.sql
+│   └── package.json
+├── package.json
+├── README.md
+└── README.en.md
 ```
 
-### `account_db`
+## 資料庫設計
 
-負責共用帳號身分與 Authentication：
+專案使用**兩個獨立的 PostgreSQL Database**，將帳號資料與網站內容分開管理。
 
-- 使用者身分
-- Email 與密碼憑證
-- Authentication Session
+| Database | 資料表 | 用途 |
+| --- | --- | --- |
+| `account_db` | `users`、`user_credentials`、`user_sessions` | 帳號、登入憑證與 Session |
+| `playlog_db` | `games`、`game_external_ids`、`game_localizations`、`genres`、`game_genres`、`platforms`、`game_platforms`、`profiles`、`reviews` | 遊戲、分類、平台、玩家資料與評測 |
 
-### `playlog_db`
+兩份 `schemas/*.sql` 由 PostgreSQL 16.15 的 `pg_dump --schema-only --no-owner --no-privileges` 匯出，包含資料表、索引、約束、函式與 Trigger，**不包含任何實際資料列**。兩個 Database 之間不使用跨資料庫外鍵。
 
-負責 PlayLog 專屬的應用程式資料：
+## 本機開發
 
-- 使用者個人檔案
-- 遊戲資料
-- 評測
-- 收藏
-- 遊戲歷程
+### 需求
 
-兩個 Database 透過使用者的 Account UUID 建立邏輯上的關聯。
+- Node.js 與 npm（版本以專案實際 `package.json` 為準）
+- PostgreSQL 16（可使用 Docker）
+- IGDB／Steam 整合所需的 API 設定（依啟用功能而定）
 
-不使用跨 Database Foreign Key。
-
-## 🔐 身分驗證
-
-PlayLog 目前使用：
-
-- Argon2id Password Hashing
-- JWT Access Token
-- Opaque Refresh Token
-- HttpOnly Cookie
-- Refresh Token Rotation
-- SHA-256 Refresh Token Hash
-- 多裝置 Session
-
-Refresh Token 不會儲存在 Local Storage 中。
-
-Database 中也只會保存經過 Hash 的 Refresh Token，不會保存原始 Token。
-
-## 🚧 開發進度
-
-- [x] React Frontend 基礎架構
-- [x] Node.js / Express Backend
-- [x] PostgreSQL 開發環境
-- [x] 使用者註冊
-- [x] 使用者登入
-- [x] JWT 身分驗證
-- [x] Refresh Token Session
-- [x] 使用者個人檔案
-- [x] 個人檔案編輯
-- [ ] 遊戲資料庫
-- [ ] IGDB API 整合
-- [ ] 遊戲搜尋
-- [ ] 玩家評分
-- [ ] 遊戲評測
-- [ ] 遊戲收藏
-- [ ] 個人遊戲歷程
-- [ ] 社群功能
-
-## ⚙️ 開發環境
-
-### 安裝 Frontend Dependencies
+### 安裝
 
 ```bash
+git clone https://github.com/jodon920502/PlayLog.git
+cd PlayLog
 npm install
+npm --prefix Backend install
 ```
 
-### 安裝 Backend Dependencies
+請依 `Backend/src/config/db.ts` 與專案環境設定準備 `Backend/.env`，設定兩個資料庫的連線資訊、驗證用密鑰及外部 API 憑證。**不要將 `.env` 提交至 GitHub**。實際環境變數名稱請以目前程式碼為準。
 
-```bash
-cd Backend
-npm install
+### 初始化資料庫
+
+先建立空的 `account_db` 與 `playlog_db`，再使用 PostgreSQL `psql` 載入 Schema。以下為已安裝 `psql`、並設定好資料庫登入權限的範例：
+
+```powershell
+psql -h localhost -U YOUR_DB_USER -d account_db -f Backend/database/schemas/account_db.sql
+psql -h localhost -U YOUR_DB_USER -d playlog_db -f Backend/database/schemas/playlog_db.sql
 ```
 
-### 環境變數
+> `YOUR_DB_USER` 請替換成具備建表權限的使用者。若 PostgreSQL 只安裝在 Docker Container 中，可透過 `docker cp` 複製 SQL，再以 `docker exec ... psql -f` 執行。請參考 [`Backend/database/README.md`](Backend/database/README.md)。
+>
+> **重要：** 完整 `playlog_db.sql` 已包含 `reviews` 表；初始化後**不要再執行** `001_create_reviews.sql`。Migration 是歷史變更紀錄，不是完整 Schema 還原後必須重跑的步驟。
 
-Backend 所需的環境變數可以參考：
-
-```text
-Backend/.env.example
-```
-
-並在本機建立：
-
-```text
-Backend/.env
-```
-
-Database 帳號密碼、JWT Secret 等敏感資訊不應提交至 Repository。
-
-### 啟動開發環境
-
-在專案根目錄執行：
+### 啟動
 
 ```bash
 npm run dev:all
 ```
 
-Frontend：
+開發環境預設使用：
 
-```text
-http://localhost:5173
+- Frontend：`http://localhost:5173`
+- Backend：`http://localhost:3000`
+
+如果你的 `package.json`、環境變數或連接埠已有調整，請以專案實際設定為準。
+
+### 建置
+
+```bash
+npm run build
+npm --prefix Backend run build
 ```
 
-Backend：
+## 主要 API（節錄）
 
-```text
-http://localhost:3000
-```
+| 方法 | 路徑 | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/games/search?q=...` | 搜尋遊戲 |
+| `GET` | `/api/games/:gameId/reviews` | 讀取遊戲評測 |
+| `GET` | `/api/games/:gameId/rating-summary` | 讀取評分統計 |
+| `POST` | `/api/games/:gameId/reviews` | 發表評測（需登入） |
+| `PATCH` | `/api/reviews/:reviewId` | 修改自己的評測 |
+| `DELETE` | `/api/reviews/:reviewId` | 刪除自己的評測 |
+| `GET` | `/api/profile/:profileId/reviews` | 讀取玩家公開評測（支援 `limit`／`offset`） |
 
-## 📁 專案結構
+以上為主要端點節錄；完整參數與回應格式以 Backend 路由實作為準。
 
-```text
-PlayLog/
-├── Backend/
-│   ├── src/
-│   │   ├── auth.middleware.ts
-│   │   ├── auth.routes.ts
-│   │   ├── auth.service.ts
-│   │   ├── db.ts
-│   │   ├── profile.routes.ts
-│   │   ├── profile.service.ts
-│   │   ├── server.ts
-│   │   └── token.service.ts
-│   └── package.json
-│
-├── src/
-│   ├── api/
-│   ├── components/
-│   ├── context/
-│   ├── pages/
-│   └── ...
-│
-└── package.json
-```
+## 開發與資料安全
 
-## 🎯 專案目標
+- Schema 檔案僅保存結構；新環境不會自動擁有原本的帳號、遊戲或評論資料。
+- 請勿提交 `.env`、API Key、JWT Secret、資料庫密碼、Token 或包含真實資料的資料庫備份。
+- 新增資料庫變更時，應保留新的 Migration，並依專案維護流程更新 Schema 快照。
+- 目前 Schema 匯出與編譯檢查已完成；**尚未在全新 PostgreSQL 環境執行完整還原驗證**。
 
-PlayLog 的目標不只是成為另一個遊戲資訊查詢網站。
+## 專案狀態
 
-這個平台的核心是「玩家」，以及每位玩家自己的遊戲歷程。
-
-玩家未來可以透過 PlayLog：
-
-- 探索新的遊戲
-- 記錄自己玩過的遊戲
-- 為遊戲進行評分
-- 撰寫並分享遊戲評測
-- 建立自己的遊戲收藏
-- 探索其他玩家的遊戲體驗
-
-遊戲的 Metadata 預計透過 IGDB 等外部資料來源取得，而玩家自行產生的內容，包括評分、評測、收藏與個人遊戲歷程，則會由 PlayLog 自行管理。
-
-## 📄 License
-
-目前尚未指定 License。
+PlayLog 為持續開發中的個人專案。目前以遊戲探索、玩家評測及個人評測紀錄為主要功能，後續將逐步擴充其他社群功能。

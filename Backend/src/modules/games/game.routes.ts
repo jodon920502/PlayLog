@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { GameNotFoundError, getGameById, importGameFromIgdb, searchLocalGames } from './game.service.js'
-import { getSteamAppIdByIgdbId, IgdbServiceError, searchGames } from './igdb.service.js'
-import { getSteamStoreLocalization, SteamLanguageValidationError, SteamServiceError, SteamValidationError } from './steam.service.js'
+import { getSteamAppIdByIgdbId, IgdbServiceError, searchGames } from '../../integrations/igdb.service.js'
+import { getSteamStoreLocalization, SteamLanguageValidationError, SteamServiceError, SteamValidationError } from '../../integrations/steam.service.js'
 
 const router = Router()
 

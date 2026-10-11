@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 dotenv.config({
-  path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env"),
+  path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env"),
 });
 
 const TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token";

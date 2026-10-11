@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getPublicProfile, type PublicProfile } from '../api/profileApi'
+import { getProfileReviews, getPublicProfile, type ProfileReview, type PublicProfile } from '../api/profileApi'
+import ProfileReviewCard from '../components/profile/ProfileReviewCard'
+import { useAuth } from '../context/AuthContext'
 import '../App.css'
 
 function ProfilePage() {
@@ -8,6 +10,12 @@ function ProfilePage() {
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reviews, setReviews] = useState<ProfileReview[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [reviewsError, setReviewsError] = useState('')
+  const [reviewsHasMore, setReviewsHasMore] = useState(false)
+  const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false)
+  const { profile: currentProfile } = useAuth()
 
   useEffect(() => {
     if (!profileId) {
@@ -40,6 +48,38 @@ function ProfilePage() {
       alive = false
     }
   }, [profileId])
+
+  useEffect(() => {
+    if (!profileId) return
+    let alive = true
+    setReviewsLoading(true)
+    setReviewsError('')
+    setReviews([])
+    void getProfileReviews(profileId, 10, 0).then((result) => {
+      if (!alive) return
+      setReviews(result.reviews)
+      setReviewsHasMore(result.pagination.hasMore)
+    }).catch((requestError: unknown) => {
+      if (alive) setReviewsError(requestError instanceof Error ? requestError.message : '無法載入玩家評測')
+    }).finally(() => {
+      if (alive) setReviewsLoading(false)
+    })
+    return () => { alive = false }
+  }, [profileId])
+
+  const loadMoreReviews = async () => {
+    if (!profileId || reviewsLoadingMore) return
+    setReviewsLoadingMore(true)
+    try {
+      const result = await getProfileReviews(profileId, 10, reviews.length)
+      setReviews((current) => [...current, ...result.reviews])
+      setReviewsHasMore(result.pagination.hasMore)
+    } catch (requestError: unknown) {
+      setReviewsError(requestError instanceof Error ? requestError.message : '無法載入更多評測')
+    } finally {
+      setReviewsLoadingMore(false)
+    }
+  }
 
   if (loading) {
     return <main className="page-width py-16 text-center text-[#a8acb6]">載入中...</main>
@@ -85,6 +125,18 @@ function ProfilePage() {
               </div>
             </aside>
           </div>
+
+          <section className="mt-10">
+            <div className="mb-5">
+              <p className="section-label mb-2">Reviews</p>
+              <h2 className="display-font text-2xl font-bold text-[#f5f3ed]">{currentProfile?.id === profile.id ? '我的評測' : '玩家評測'}</h2>
+            </div>
+            {reviewsLoading && <p className="py-6 text-center text-sm text-[#81848f]">載入評測中...</p>}
+            {reviewsError && <p className="rounded-xl border border-[#f06c6c]/30 p-5 text-sm text-[#f06c6c]" role="alert">{reviewsError}</p>}
+            {!reviewsLoading && !reviewsError && reviews.length === 0 && <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-8 text-center text-sm text-[#81848f]">目前還沒有公開評測。</div>}
+            {!reviewsLoading && !reviewsError && reviews.length > 0 && <div className="space-y-4">{reviews.map((review) => <div key={review.id} className="max-w-4xl"><ProfileReviewCard review={review} /></div>)}</div>}
+            {!reviewsLoading && reviewsHasMore && <div className="mt-6 text-center"><button type="button" onClick={() => void loadMoreReviews()} disabled={reviewsLoadingMore} className="ghost-button rounded-lg px-5 py-2.5 text-sm">{reviewsLoadingMore ? '載入中...' : '載入更多'}</button></div>}
+          </section>
         </div>
       </div>
     </main>

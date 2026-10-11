@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { AuthError, createLoginSession, getActiveUser, loginUser, refreshLoginSession, registerUser, revokeRefreshSession } from './auth.service.js'
-import { requireAuth } from './auth.middleware.js'
+import { requireAuth } from '../../middleware/auth.middleware.js'
 import { REFRESH_TOKEN_TTL_MS } from './token.service.js'
 
 const router = Router()
