@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
+import SEO from "../components/seo/SEO";
 
 const authorLinks = [
   {
@@ -27,6 +28,7 @@ const techStack = [
 export default function AboutPage() {
   return (
     <div className="app-shell min-h-screen">
+      <SEO title="關於 PlayLog" description="了解 PlayLog 的遊戲評測、玩家社群與產品理念。" />
       <Navbar />
       <main className="page-width py-10 sm:py-14">
         <header className="mb-10 max-w-2xl">

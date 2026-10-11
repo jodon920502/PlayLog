@@ -6,6 +6,7 @@ import Navbar from '../components/layout/Navbar'
 import { useAuth } from '../context/AuthContext'
 import { getFavorites } from '../services/favoriteService'
 import type { Game } from '../types/game'
+import SEO from '../components/seo/SEO'
 
 export default function FavoritesPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
@@ -28,7 +29,7 @@ export default function FavoritesPage() {
     return () => { cancelled = true }
   }, [authLoading, isAuthenticated])
 
-  return <div className="app-shell min-h-screen">
+  return <div className="app-shell min-h-screen"><SEO title="我的收藏｜PlayLog" description="查看你在 PlayLog 收藏的遊戲。" indexable={false} />
     <Navbar />
     <main className="page-width py-8 sm:py-10">
       <div className="mb-8"><p className="section-label mb-2">Your collection</p><h1 className="display-font text-3xl font-bold text-[#f5f3ed]">我的收藏</h1><p className="mt-2 text-sm text-[#a5a7af]">收藏喜歡的遊戲，之後再回來探索。</p></div>

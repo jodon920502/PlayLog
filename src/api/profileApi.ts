@@ -1,5 +1,6 @@
 import { API_URL, fetchWithAuth } from '../lib/authApi'
 import type { Game } from '../types/game'
+import type { GameStatus } from '../services/gameStatusService'
 
 export interface PlayProfile {
   id: string
@@ -10,6 +11,7 @@ export interface PlayProfile {
   bannerUrl: string | null
   createdAt: string
   updatedAt: string
+  gameLibraryPublic: boolean
 }
 
 export interface PublicProfile {
@@ -19,6 +21,7 @@ export interface PublicProfile {
   bio: string | null
   bannerUrl: string | null
   createdAt: string
+  gameLibraryPublic: boolean
 }
 
 export interface ProfileReview {
@@ -43,6 +46,18 @@ export interface ProfileReviewPage {
 
 export interface PublicFavoriteGamesPage {
   games: Game[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+}
+
+export interface PublicGameLibraryPage {
+  games: Array<Game & { gameStatus: GameStatus }>
+  statusCounts: Record<GameStatus, number>
+  reviewCount: number
   pagination: {
     total: number
     limit: number
@@ -99,6 +114,8 @@ export async function updateMyProfile(accessToken: string, data: {
   bio?: string | null
   banner_url?: string | null
   bannerUrl?: string | null
+  game_library_public?: boolean
+  gameLibraryPublic?: boolean
 }): Promise<PlayProfile> {
   const response = await fetchWithAuth(`${API_URL}/api/profile/me`, {
     method: 'PATCH',
@@ -146,5 +163,17 @@ export async function getPublicProfileFavorites(profileId: string, limit = 20, o
   if (!response.ok || !data.success || !data.games || !data.pagination) {
     throw new Error(data.message ?? '無法取得收藏遊戲')
   }
+
   return { games: data.games, pagination: data.pagination }
+}
+
+export async function getPublicGameLibrary(profileId: string, status?: GameStatus, limit = 12, offset = 0): Promise<PublicGameLibraryPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  if (status) params.set('status', status)
+  const response = await fetchWithAuth(`${API_URL}/api/status/profiles/${encodeURIComponent(profileId)}/library?${params}`, { credentials: 'include' })
+  const data = await response.json() as { success: boolean; games?: PublicGameLibraryPage['games']; statusCounts?: PublicGameLibraryPage['statusCounts']; reviewCount?: number; pagination?: PublicGameLibraryPage['pagination']; message?: string }
+  if (!response.ok || !data.success || !data.games || !data.statusCounts || data.reviewCount === undefined || !data.pagination) {
+    throw new Error(data.message ?? '無法取得玩家遊戲庫')
+  }
+  return { games: data.games, statusCounts: data.statusCounts, reviewCount: data.reviewCount, pagination: data.pagination }
 }

@@ -11,14 +11,15 @@ interface SortDropdownProps {
   options: SortOption[]
   onChange: (value: string) => void
   ariaLabel?: string
+  disabled?: boolean
 }
 
-export default function SortDropdown({ value, options, onChange, ariaLabel = '排序' }: SortDropdownProps) {
+export default function SortDropdown({ value, options, onChange, ariaLabel = '排序', disabled = false }: SortDropdownProps) {
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const listboxRef = useRef<HTMLDivElement | null>(null)
-  const listboxId = `${ariaLabel.replace(/\s+/g, '-')}-options`
+  const listboxId = `${ariaLabel.replace(/\s+/g, '-')}-options-${value || 'empty'}`
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value))
   const selectedOption = options[selectedIndex]
 
@@ -96,9 +97,10 @@ export default function SortDropdown({ value, options, onChange, ariaLabel = '�
         aria-expanded={open}
         aria-controls={listboxId}
         aria-label={ariaLabel}
+        disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleTriggerKeyDown}
-        className="flex min-w-[132px] items-center justify-between gap-3 rounded-lg border border-white/[.08] bg-[#151821] px-3 py-2 text-sm text-[#eeece5] outline-none transition hover:border-[#f2c544]/60 focus:border-[#f2c544] focus:ring-2 focus:ring-[#f2c544]/20"
+        className="flex min-w-[132px] items-center justify-between gap-3 rounded-lg border border-white/[.08] bg-[#151821] px-3 py-2 text-sm text-[#eeece5] outline-none transition hover:border-[#f2c544]/60 focus:border-[#f2c544] focus:ring-2 focus:ring-[#f2c544]/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span>{selectedOption?.label ?? ''}</span>
         <ChevronDown size={15} className={`shrink-0 text-[#f2c544] transition-transform ${open ? 'rotate-180' : ''}`} />

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { getAccessToken } from '../lib/authApi'
 import '../App.css'
 import { useDisplayNameAvailability } from '../hooks/useDisplayNameAvailability'
+import SEO from '../components/seo/SEO'
 
 function ProfileEditPage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ function ProfileEditPage() {
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
+  const [gameLibraryPublic, setGameLibraryPublic] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const nameCheck = useDisplayNameAvailability(displayName, { initialValue: profile?.displayName, forCurrentUser: true })
@@ -27,6 +29,7 @@ function ProfileEditPage() {
     setBio(profile.bio ?? '')
     setAvatarUrl(profile.avatarUrl ?? '')
     setBannerUrl(profile.bannerUrl ?? '')
+    setGameLibraryPublic(profile.gameLibraryPublic)
   }, [profile])
 
   if (!isAuthenticated) {
@@ -53,6 +56,7 @@ function ProfileEditPage() {
         bio: bio.trim() || null,
         avatarUrl: avatarUrl.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
+        gameLibraryPublic,
       })
 
       setSession({
@@ -69,7 +73,7 @@ function ProfileEditPage() {
   }
 
   return (
-    <main className="page-width py-10">
+    <><SEO title="編輯個人資料｜PlayLog" description="編輯你的 PlayLog 個人資料。" indexable={false} /><main className="page-width py-10">
       <div className="mb-6 flex items-center gap-3">
         <Link to="/" className="inline-flex items-center gap-2 text-xs text-[#9aa0ad] hover:text-[#f2c544]">
           <ArrowLeft size={14} /> 返回首頁
@@ -108,6 +112,10 @@ function ProfileEditPage() {
             <span className="mb-2 block text-xs font-semibold text-[#c7c6c0]">Banner 網址</span>
             <input value={bannerUrl} onChange={(event) => setBannerUrl(event.target.value)} className="w-full rounded-xl border border-white/[.08] bg-[#151b23] px-3 py-3 text-sm text-white outline-none focus:border-[#f2c544]/60" placeholder="https://..." />
           </label>
+          <label className="flex items-start gap-3 rounded-xl border border-white/[.08] bg-[#151b23] p-4 md:col-span-2">
+            <input type="checkbox" checked={gameLibraryPublic} onChange={(event) => setGameLibraryPublic(event.target.checked)} className="mt-1 accent-[#f2c544]" />
+            <span><span className="block text-sm font-semibold text-[#f5f3ed]">公開我的遊戲庫</span><span className="mt-1 block text-xs leading-5 text-[#8f949f]">允許其他玩家查看你的遊戲狀態與遊戲庫統計。預設為私人。</span></span>
+          </label>
         </div>
 
         {error && <p className="mt-5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">{error}</p>}
@@ -119,7 +127,7 @@ function ProfileEditPage() {
           </button>
         </div>
       </form>
-    </main>
+    </main></>
   )
 }
 

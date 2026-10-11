@@ -22,6 +22,7 @@ PlayLog 使用兩個 PostgreSQL database：
 - `game_platforms`
 - `profiles`
 - `reviews`
+- `user_game_statuses`
 
 目前 `account_db` 的主要資料表包括：
 
@@ -88,12 +89,22 @@ Backend/database/migrations/playlog_db/
 新增遞增編號的 SQL，例如：
 
 ```text
-002_add_game_status_index.sql
+005_create_user_game_statuses.sql
+006_add_game_library_privacy.sql
 ```
 
 執行前請確認目標資料庫與執行紀錄，並在安全的開發環境先驗證。已套用過的 Migration 不應重複執行，也不要用 Migration 取代完整 Schema 匯出。
 
 `account_db` 與 `playlog_db` 分開管理；若未來需要 account database 的 Migration，應建立獨立的 `account_db` Migration 目錄，避免跨資料庫混用。
+
+目前已有資料庫依序套用 `005_create_user_game_statuses.sql` 與
+`006_add_game_library_privacy.sql`。第二個 Migration 會在 `profiles` 新增
+`game_library_public`，既有玩家與新玩家預設都是 `FALSE`（私人）。例如：
+
+```powershell
+psql -h localhost -p 5432 -U <database-user> -d playlog_db -f Backend/database/migrations/playlog_db/005_create_user_game_statuses.sql
+psql -h localhost -p 5432 -U <database-user> -d playlog_db -f Backend/database/migrations/playlog_db/006_add_game_library_privacy.sql
+```
 
 ## Schema 與 Migration 的差別
 

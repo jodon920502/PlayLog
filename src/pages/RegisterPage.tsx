@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import '../App.css'
 import { register } from '../lib/authApi'
 import { useDisplayNameAvailability } from '../hooks/useDisplayNameAvailability'
+import SEO from '../components/seo/SEO'
 
 function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -43,7 +44,7 @@ function RegisterPage() {
   }
 
   return (
-    <main className="login-page flex min-h-screen items-center justify-center px-5 py-10">
+    <><SEO title="建立帳號｜PlayLog" description="建立 PlayLog 帳號，加入遊戲評測與玩家社群。" indexable={false} /><main className="login-page flex min-h-screen items-center justify-center px-5 py-10">
       <div className="login-orb login-orb-one" /><div className="login-orb login-orb-two" />
       <section className="login-card relative z-10 w-full max-w-[430px] rounded-2xl p-7 sm:p-9">
         <Link to="/" className="mb-8 inline-flex items-center gap-2 text-xs text-[#9599a5] transition hover:text-[#f2c544]"><ArrowLeft size={14} /> 返回首頁</Link>
@@ -57,7 +58,7 @@ function RegisterPage() {
         </form>
         <p className="mt-7 text-center text-xs text-[#898d99]">已經有帳號？ <Link to="/login" className="font-semibold text-[#f2c544] hover:text-[#ffd85f]">登入</Link></p>
       </section>
-    </main>
+    </main></>
   )
 }
 

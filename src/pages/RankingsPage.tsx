@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import SortDropdown from '../components/ui/SortDropdown'
+import SEO from '../components/seo/SEO'
 import { getIgdbCoverUrl, getRankings, type RankingGame, type RankingSort } from '../services/gameService'
 
 const sortOptions: Array<{ value: RankingSort; label: string }> = [
@@ -68,6 +69,7 @@ export default function RankingsPage() {
 
   return (
     <div className="app-shell min-h-screen">
+      <SEO title="遊戲排行榜｜PlayLog" description="依 PlayLog 玩家綜合評價查看遊戲排行榜與玩家評分。" />
       <Navbar />
       <main className="page-width py-10 sm:py-14">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">

@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Menu, PenLine, Search, User, X } from 'lucide-react'
+import { Bell, BookOpen, ChevronDown, LogOut, Menu, PenLine, Search, User, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -103,7 +103,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-30 border-b border-white/[.06] bg-[#0b0d13]/90 backdrop-blur-xl">
       <div className="page-width flex h-[72px] items-center justify-between gap-6">
         <Link to="/" className="display-font flex items-center gap-2 text-xl font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f2c544] text-sm text-[#10120f]">P</span>
+          <img src="/images/playlog-icon-32.png" alt="PlayLog" className="h-8 w-8 object-contain" />
           Play<span className="text-[#f2c544]">Log</span>
         </Link>
         <nav className="desktop-nav flex items-center gap-5">
@@ -187,6 +187,7 @@ export default function Navbar() {
                 <div className="absolute right-0 top-full mt-3 w-52 overflow-hidden rounded-xl border border-white/[.08] bg-[#10151d] shadow-2xl shadow-black/30">
                   <button onClick={() => { setProfileOpen(false); navigate(`/profile/${profile?.id ?? user?.id ?? ''}`) }} className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#ebedf1] transition hover:bg-white/5"><User size={15} className="text-[#f2c544]" />個人檔案</button>
                   <button onClick={() => { setProfileOpen(false); navigate('/profile/edit') }} className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#ebedf1] transition hover:bg-white/5"><PenLine size={15} className="text-[#f2c544]" />編輯個人檔案</button>
+                  <button onClick={() => { setProfileOpen(false); navigate('/library') }} className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#ebedf1] transition hover:bg-white/5"><BookOpen size={15} className="text-[#f2c544]" />我的遊戲庫</button>
                   <div className="my-1 h-px bg-white/[.08]" />
                   <button onClick={handleLogout} className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#ffb4a7] transition hover:bg-red-500/10"><LogOut size={15} />登出</button>
                 </div>
@@ -215,6 +216,7 @@ export default function Navbar() {
           <>
             <button onClick={() => navigate(`/profile/${profile?.id ?? user?.id ?? ''}`)} className="text-left">個人檔案</button>
             <button onClick={() => navigate('/profile/edit')} className="text-left">編輯個人檔案</button>
+            <button onClick={() => navigate('/library')} className="text-left">我的遊戲庫</button>
             <button onClick={handleLogout} className="text-left text-[#ffb4a7]">登出</button>
           </>
         ) : (

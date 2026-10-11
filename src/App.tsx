@@ -12,6 +12,7 @@ import AboutPage from './pages/AboutPage'
 import FavoritesPage from './pages/FavoritesPage'
 import ReviewsPage from './pages/ReviewsPage'
 import RankingsPage from './pages/RankingsPage'
+import LibraryPage from './pages/LibraryPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/game/:gameId" element={<GameDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/rankings" element={<RankingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

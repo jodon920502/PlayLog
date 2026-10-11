@@ -138,6 +138,7 @@ CREATE TABLE public.profiles (
     avatar_url text,
     bio character varying(500),
     banner_url text,
+    game_library_public boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -156,6 +157,20 @@ CREATE TABLE public.reviews (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT reviews_rating_range CHECK (((rating >= 0.5) AND (rating <= 5.0) AND (mod(rating, 0.5) = (0)::numeric)))
+);
+
+--
+-- Name: user_game_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_game_statuses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    game_id uuid NOT NULL,
+    status character varying(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_game_statuses_status_check CHECK (((status)::text = ANY ((ARRAY['wishlist'::character varying, 'playing'::character varying, 'completed'::character varying, 'paused'::character varying, 'dropped'::character varying])::text[])))
 );
 
 
@@ -205,6 +220,20 @@ ALTER TABLE ONLY public.games
 
 ALTER TABLE ONLY public.games
     ADD CONSTRAINT games_slug_key UNIQUE (slug);
+
+--
+-- Name: user_game_statuses user_game_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_game_statuses
+    ADD CONSTRAINT user_game_statuses_pkey PRIMARY KEY (id);
+
+--
+-- Name: user_game_statuses user_game_statuses_user_game_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_game_statuses
+    ADD CONSTRAINT user_game_statuses_user_game_unique UNIQUE (user_id, game_id);
 
 
 --
@@ -306,6 +335,12 @@ CREATE INDEX reviews_game_created_at_idx ON public.reviews USING btree (game_id,
 
 CREATE INDEX reviews_game_rating_idx ON public.reviews USING btree (game_id, rating);
 
+--
+-- Name: user_game_statuses_user_updated_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_game_statuses_user_updated_at_idx ON public.user_game_statuses USING btree (user_id, updated_at DESC);
+
 
 --
 -- Name: game_localizations trg_game_localizations_updated_at; Type: TRIGGER; Schema: public; Owner: -
@@ -382,6 +417,13 @@ ALTER TABLE ONLY public.game_platforms
 
 ALTER TABLE ONLY public.reviews
     ADD CONSTRAINT reviews_game_id_fkey FOREIGN KEY (game_id) REFERENCES public.games(id) ON DELETE RESTRICT;
+
+--
+-- Name: user_game_statuses user_game_statuses_game_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_game_statuses
+    ADD CONSTRAINT user_game_statuses_game_id_fkey FOREIGN KEY (game_id) REFERENCES public.games(id) ON DELETE CASCADE;
 
 
 --

@@ -14,6 +14,7 @@ export interface ProfileRecord {
   avatar_url: string | null
   bio: string | null
   banner_url: string | null
+  game_library_public: boolean
   created_at: string
   updated_at: string
 }
@@ -27,6 +28,7 @@ export interface ProfileResponse {
   bannerUrl: string | null
   createdAt: string
   updatedAt: string
+  gameLibraryPublic: boolean
 }
 
 export interface PublicProfileResponse {
@@ -36,6 +38,7 @@ export interface PublicProfileResponse {
   bio: string | null
   bannerUrl: string | null
   createdAt: string
+  gameLibraryPublic: boolean
 }
 
 export interface PlayerSearchResult {
@@ -112,6 +115,7 @@ function mapProfile(row: ProfileRecord): ProfileResponse {
     bannerUrl: row.banner_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    gameLibraryPublic: row.game_library_public,
   }
 }
 
@@ -123,6 +127,7 @@ function mapPublicProfile(row: ProfileRecord): PublicProfileResponse {
     bio: row.bio,
     bannerUrl: row.banner_url,
     createdAt: row.created_at,
+    gameLibraryPublic: row.game_library_public,
   }
 }
 
@@ -149,9 +154,10 @@ export function normalizeProfileUpdate(body: unknown): {
   avatarUrl?: string | null
   bio?: string | null
   bannerUrl?: string | null
+  gameLibraryPublic?: boolean
 } {
   const patch = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
-  const result: { displayName?: string; avatarUrl?: string | null; bio?: string | null; bannerUrl?: string | null } = {}
+  const result: { displayName?: string; avatarUrl?: string | null; bio?: string | null; bannerUrl?: string | null; gameLibraryPublic?: boolean } = {}
 
   const displayName = patch.display_name ?? patch.displayName
   if (displayName !== undefined) {
@@ -191,6 +197,12 @@ export function normalizeProfileUpdate(body: unknown): {
     } else {
       result.bannerUrl = bannerUrl.trim()
     }
+  }
+
+  const gameLibraryPublic = patch.game_library_public ?? patch.gameLibraryPublic
+  if (gameLibraryPublic !== undefined) {
+    if (typeof gameLibraryPublic !== 'boolean') throw new ProfileError('VALIDATION_ERROR', 'game_library_public 必須是布林值')
+    result.gameLibraryPublic = gameLibraryPublic
   }
 
   if (Object.keys(result).length === 0) {
@@ -384,6 +396,11 @@ export async function updateMyProfile(userId: string, body: unknown): Promise<Pr
   if (update.bannerUrl !== undefined) {
     fields.push(`banner_url = $${index}`)
     values.push(update.bannerUrl)
+    index += 1
+  }
+  if (update.gameLibraryPublic !== undefined) {
+    fields.push(`game_library_public = $${index}`)
+    values.push(update.gameLibraryPublic)
     index += 1
   }
 

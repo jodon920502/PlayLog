@@ -6,6 +6,7 @@ import '../App.css'
 import { getMyProfile } from '../api/profileApi'
 import { useAuth } from '../context/AuthContext'
 import { login } from '../lib/authApi'
+import SEO from '../components/seo/SEO'
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -34,7 +35,7 @@ function LoginPage() {
   }
 
   return (
-    <main className="login-page flex min-h-screen items-center justify-center px-5 py-10">
+    <><SEO title="登入｜PlayLog" description="登入 PlayLog，管理你的遊戲評測與收藏。" indexable={false} /><main className="login-page flex min-h-screen items-center justify-center px-5 py-10">
       <div className="login-orb login-orb-one" />
       <div className="login-orb login-orb-two" />
       <section className="login-card relative z-10 w-full max-w-[430px] rounded-2xl p-7 sm:p-9">
@@ -80,7 +81,7 @@ function LoginPage() {
 
         <p className="mt-8 text-center text-xs text-[#898d99]">還沒有 PlayLog 帳號？ <Link to="/register" className="font-semibold text-[#f2c544] hover:text-[#ffd85f]">立即註冊</Link></p>
       </section>
-    </main>
+    </main></>
   )
 }
 

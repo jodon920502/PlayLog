@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Navbar from '../components/layout/Navbar'
 import ReviewDisplayCard from '../components/review/ReviewDisplayCard'
 import SortDropdown from '../components/ui/SortDropdown'
+import SEO from '../components/seo/SEO'
 import { getPublicReviews, type CommunityReview, type ReviewSort } from '../services/reviewService'
 
 const sortOptions: Array<{ value: ReviewSort; label: string }> = [
@@ -51,6 +52,7 @@ export default function ReviewsPage() {
 
   return (
     <div className="app-shell min-h-screen">
+      <SEO title="玩家評測｜PlayLog" description="查看 PlayLog 玩家分享的遊戲評測、評分與心得。" />
       <Navbar />
       <main className="page-width py-10 sm:py-14">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">

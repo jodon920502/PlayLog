@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { Link as RouterLink, useLocation, useParams } from 'react-router-dom'
-import { getProfileReviews, getPublicProfile, getPublicProfileFavorites, type ProfileReview, type PublicProfile } from '../api/profileApi'
+import { getProfileReviews, getPublicGameLibrary, getPublicProfile, getPublicProfileFavorites, type ProfileReview, type PublicProfile } from '../api/profileApi'
+import LibraryGameCard, { type LibraryGame } from '../components/game/LibraryGameCard'
+import { GAME_STATUS_LABELS, GAME_STATUSES, type GameStatus } from '../services/gameStatusService'
 import type { Game } from '../types/game'
 import ProfileReviewCard from '../components/profile/ProfileReviewCard'
 import { useAuth } from '../context/AuthContext'
 import { getIgdbCoverUrl } from '../services/gameService'
 import { formatGenreName } from '../utils/gameDisplay'
+import SEO from '../components/seo/SEO'
 import '../App.css'
+
+type ProfileTab = 'reviews' | 'library' | 'favorites'
 
 function FavoriteGameCard({ game }: { game: Game }) {
   const title = game.displayName ?? game.name
@@ -52,10 +57,20 @@ function ProfilePage() {
   const [reviewsHasMore, setReviewsHasMore] = useState(false)
   const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false)
   const [favoriteGames, setFavoriteGames] = useState<Game[]>([])
+  const [favoritePagination, setFavoritePagination] = useState({ total: 0, limit: 20, offset: 0, hasMore: false })
   const [favoritesLoading, setFavoritesLoading] = useState(true)
   const [favoritesError, setFavoritesError] = useState('')
+  const [activeTab, setActiveTab] = useState<ProfileTab>('reviews')
+  const [libraryStatus, setLibraryStatus] = useState<GameStatus | ''>('')
+  const [libraryGames, setLibraryGames] = useState<LibraryGame[]>([])
+  const [libraryPagination, setLibraryPagination] = useState({ total: 0, limit: 12, offset: 0, hasMore: false })
+  const [libraryCounts, setLibraryCounts] = useState<Record<GameStatus, number> | null>(null)
+  const [libraryReviewCount, setLibraryReviewCount] = useState<number | null>(null)
+  const [libraryLoading, setLibraryLoading] = useState(true)
+  const [libraryError, setLibraryError] = useState('')
   const { profile: currentProfile, isLoading: authLoading } = useAuth()
   const isOwnProfile = !authLoading && currentProfile?.id === profileId
+  const canViewLibrary = isOwnProfile || Boolean(profile?.gameLibraryPublic)
   const hasValidSearchSource = typeof state?.from === 'string' && (state.from === '/search' || state.from.startsWith('/search?'))
   const hasValidGameSource = typeof state?.from === 'string' && /^\/game\/[^/?#]+$/.test(state.from)
   const returnPath = hasValidSearchSource || hasValidGameSource ? state.from as string : '/search?type=players'
@@ -95,22 +110,52 @@ function ProfilePage() {
   }, [profileId])
 
   useEffect(() => {
-    if (!profileId) return
+    if (!profileId || !profile || authLoading || !canViewLibrary || activeTab !== 'library') return
+    let alive = true
+    setLibraryLoading(true)
+    setLibraryError('')
+    void getPublicGameLibrary(profileId, libraryStatus || undefined, 12, libraryPagination.offset).then((result) => {
+      if (!alive) return
+      setLibraryGames(result.games)
+      setLibraryPagination(result.pagination)
+      setLibraryCounts(result.statusCounts)
+      setLibraryReviewCount(result.reviewCount)
+    }).catch((requestError: unknown) => {
+      if (alive) {
+        setLibraryGames([])
+        setLibraryError(requestError instanceof Error ? requestError.message : '無法載入玩家遊戲庫')
+      }
+    }).finally(() => {
+      if (alive) setLibraryLoading(false)
+    })
+    return () => { alive = false }
+  }, [activeTab, authLoading, canViewLibrary, libraryPagination.offset, libraryStatus, profile, profileId])
+
+  const changeLibraryStatus = (nextStatus: GameStatus | '') => {
+    setLibraryStatus(nextStatus)
+    setLibraryPagination((current) => ({ ...current, offset: 0 }))
+  }
+
+  useEffect(() => {
+    if (!profileId || activeTab !== 'favorites') return
     let alive = true
     setFavoritesLoading(true)
     setFavoritesError('')
     void getPublicProfileFavorites(profileId).then((result) => {
-      if (alive) setFavoriteGames(result.games)
+      if (alive) {
+        setFavoriteGames(result.games)
+        setFavoritePagination(result.pagination)
+      }
     }).catch((requestError: unknown) => {
       if (alive) setFavoritesError(requestError instanceof Error ? requestError.message : '無法載入收藏遊戲')
     }).finally(() => {
       if (alive) setFavoritesLoading(false)
     })
     return () => { alive = false }
-  }, [profileId])
+  }, [activeTab, profileId])
 
   useEffect(() => {
-    if (!profileId) return
+    if (!profileId || activeTab !== 'reviews') return
     let alive = true
     setReviewsLoading(true)
     setReviewsError('')
@@ -125,6 +170,12 @@ function ProfilePage() {
       if (alive) setReviewsLoading(false)
     })
     return () => { alive = false }
+  }, [activeTab, profileId])
+
+  useEffect(() => {
+    setActiveTab('reviews')
+    setLibraryStatus('')
+    setLibraryPagination((current) => ({ ...current, offset: 0 }))
   }, [profileId])
 
   const loadMoreReviews = async () => {
@@ -142,23 +193,23 @@ function ProfilePage() {
   }
 
   if (loading) {
-    return <main className="page-width py-16 text-center text-[#a8acb6]">載入中...</main>
+    return <><SEO title="玩家個人頁｜PlayLog" description="查看 PlayLog 玩家公開的個人資料、評測與收藏遊戲。" /><main className="page-width py-16 text-center text-[#a8acb6]">載入中...</main></>
   }
 
   if (error || !profile) {
     return (
-      <main className="page-width py-16">
+      <><SEO title="玩家個人頁｜PlayLog" description="查看 PlayLog 玩家公開的個人資料、評測與收藏遊戲。" /><main className="page-width py-16">
         <div className="glass max-w-xl rounded-2xl p-8 text-center">
           <p className="text-lg font-semibold text-[#f5f3ed]">玩家資料不存在</p>
           <p className="mt-3 text-sm text-[#a8acb6]">{error || '此頁面目前不可用。'}</p>
           <RouterLink to="/" className="mt-6 inline-block text-sm text-[#f2c544]">返回首頁</RouterLink>
         </div>
-      </main>
+      </main></>
     )
   }
 
   return (
-    <main className="page-width py-10">
+    <><SEO title={`${profile.displayName} 的個人頁｜PlayLog`} description={`查看 ${profile.displayName} 在 PlayLog 的公開評測與收藏遊戲。`} /><main className="page-width py-10">
       {authLoading
         ? <span aria-live="polite" className="mb-5 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[#81848f]"><ArrowLeft size={16} />返回選項載入中...</span>
         : <RouterLink to={returnTarget} className="mb-5 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[#c5c6ca] transition hover:bg-white/[.05] hover:text-[#f2c544] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c544]"><ArrowLeft size={16} />{returnLabel}</RouterLink>}
@@ -183,13 +234,20 @@ function ProfilePage() {
             <aside className="rounded-2xl border border-white/[.06] bg-[#0d1219] p-5">
               <p className="section-label mb-3">最近動態</p>
               <div className="space-y-3 text-sm text-[#bac0cd]">
-                <p>{reviewsLoading ? '評測載入中...' : `公開評測 ${reviews.length}${reviewsHasMore ? '+' : ''} 篇`}</p>
-                <p>{favoritesLoading ? '收藏載入中...' : `收藏遊戲 ${favoriteGames.length}${favoriteGames.length === 20 ? '+' : ''} 款`}</p>
+                <p>{libraryReviewCount === null ? '評測統計請查看玩家評測' : `公開評測 ${libraryReviewCount} 篇`}</p>
+                <p>{favoritePagination.total > 0 ? `收藏遊戲 ${favoritePagination.total} 款` : '收藏數量請查看收藏分頁'}</p>
               </div>
             </aside>
           </div>
 
-          <section className="mt-10">
+          <div className="mt-10 border-b border-white/[.08]" role="tablist" aria-label="玩家內容分類">
+            <div className="flex flex-wrap gap-2 sm:gap-6">
+              <button type="button" role="tab" aria-selected={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} className={`border-b-2 px-2 py-3 text-sm font-medium transition ${activeTab === 'reviews' ? 'border-[#f2c544] text-[#f2c544]' : 'border-transparent text-[#a8acb6] hover:text-[#f2c544]'}`}>玩家評測</button>
+              {canViewLibrary && <button type="button" role="tab" aria-selected={activeTab === 'library'} onClick={() => setActiveTab('library')} className={`border-b-2 px-2 py-3 text-sm font-medium transition ${activeTab === 'library' ? 'border-[#f2c544] text-[#f2c544]' : 'border-transparent text-[#a8acb6] hover:text-[#f2c544]'}`}>遊戲庫{libraryPagination.total > 0 && ` (${libraryPagination.total})`}</button>}
+              <button type="button" role="tab" aria-selected={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} className={`border-b-2 px-2 py-3 text-sm font-medium transition ${activeTab === 'favorites' ? 'border-[#f2c544] text-[#f2c544]' : 'border-transparent text-[#a8acb6] hover:text-[#f2c544]'}`}>收藏{favoritePagination.total > 0 && ` (${favoritePagination.total})`}</button>
+            </div>
+          </div>
+          {activeTab === 'reviews' && <section className="mt-8" role="tabpanel">
             <div className="mb-5">
               <p className="section-label mb-2">Reviews</p>
               <h2 className="display-font text-2xl font-bold text-[#f5f3ed]">{currentProfile?.id === profile.id ? '我的評測' : '玩家評測'}</h2>
@@ -199,8 +257,30 @@ function ProfilePage() {
             {!reviewsLoading && !reviewsError && reviews.length === 0 && <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-8 text-center text-sm text-[#81848f]">目前還沒有公開評測。</div>}
             {!reviewsLoading && !reviewsError && reviews.length > 0 && <div className="grid gap-4 lg:grid-cols-2">{reviews.map((review) => <div key={review.id} className="min-w-0"><ProfileReviewCard review={review} /></div>)}</div>}
             {!reviewsLoading && reviewsHasMore && <div className="mt-6 text-center"><button type="button" onClick={() => void loadMoreReviews()} disabled={reviewsLoadingMore} className="ghost-button rounded-lg px-5 py-2.5 text-sm">{reviewsLoadingMore ? '載入中...' : '載入更多'}</button></div>}
-          </section>
-          <section className="mt-10">
+          </section>}
+          {activeTab === 'library' && canViewLibrary && <section className="mt-8" role="tabpanel">
+            <div className="mb-5">
+              <p className="section-label mb-2">Game Library</p>
+              <h2 className="display-font text-2xl font-bold text-[#f5f3ed]">{isOwnProfile ? '我的遊戲統計與遊戲庫' : '玩家遊戲庫'}</h2>
+            </div>
+            {libraryCounts && <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">想玩</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryCounts.wishlist}</p></div>
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">遊玩中</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryCounts.playing}</p></div>
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">已通關</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryCounts.completed}</p></div>
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">已暫停</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryCounts.paused}</p></div>
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">已棄坑</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryCounts.dropped}</p></div>
+              <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-3"><p className="text-xs text-[#81848f]">評測總數</p><p className="mt-1 text-xl font-semibold text-[#f2c544]">{libraryReviewCount ?? 0}</p></div>
+            </div>}
+            <div className="mb-5 flex flex-wrap gap-2">
+              <button type="button" onClick={() => changeLibraryStatus('')} className={`rounded-full px-3 py-1.5 text-xs transition ${libraryStatus === '' ? 'bg-[#f2c544] text-[#10120f]' : 'border border-white/[.1] text-[#a5a7af] hover:border-[#f2c544]/50'}`}>全部</button>
+              {GAME_STATUSES.map((item) => <button key={item} type="button" onClick={() => changeLibraryStatus(item)} className={`rounded-full px-3 py-1.5 text-xs transition ${libraryStatus === item ? 'bg-[#f2c544] text-[#10120f]' : 'border border-white/[.1] text-[#a5a7af] hover:border-[#f2c544]/50'}`}>{GAME_STATUS_LABELS[item]}</button>)}
+            </div>
+            {libraryLoading && <p className="py-6 text-center text-sm text-[#81848f]">載入遊戲庫中...</p>}
+            {libraryError && <p className="rounded-xl border border-[#f06c6c]/30 p-5 text-sm text-[#f06c6c]" role="alert">{libraryError}</p>}
+            {!libraryLoading && !libraryError && libraryGames.length === 0 && <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-8 text-center text-sm text-[#81848f]">目前沒有符合的遊戲。</div>}
+            {!libraryLoading && !libraryError && libraryGames.length > 0 && <><div className="grid gap-4 lg:grid-cols-2">{libraryGames.map((game) => <LibraryGameCard key={game.id} game={game} />)}</div><div className="mt-6 flex items-center justify-between text-xs text-[#777b86]"><span>共 {libraryPagination.total} 款遊戲</span><div className="flex gap-2"><button type="button" disabled={libraryPagination.offset === 0} onClick={() => setLibraryPagination((current) => ({ ...current, offset: Math.max(0, current.offset - current.limit) }))} className="rounded-lg border border-white/[.08] px-3 py-2 disabled:opacity-40">上一頁</button><button type="button" disabled={!libraryPagination.hasMore} onClick={() => setLibraryPagination((current) => ({ ...current, offset: current.offset + current.limit }))} className="rounded-lg border border-white/[.08] px-3 py-2 disabled:opacity-40">下一頁</button></div></div></>}
+          </section>}
+          {activeTab === 'favorites' && <section className="mt-8" role="tabpanel">
             <div className="mb-5">
               <p className="section-label mb-2">Collection</p>
               <h2 className="display-font text-2xl font-bold text-[#f5f3ed]">收藏的遊戲</h2>
@@ -209,10 +289,10 @@ function ProfilePage() {
             {favoritesError && <p className="rounded-xl border border-[#f06c6c]/30 p-5 text-sm text-[#f06c6c]" role="alert">{favoritesError}</p>}
             {!favoritesLoading && !favoritesError && favoriteGames.length === 0 && <div className="rounded-xl border border-white/[.06] bg-[#0d1219] p-8 text-center text-sm text-[#81848f]">目前還沒有公開收藏的遊戲。</div>}
             {!favoritesLoading && !favoritesError && favoriteGames.length > 0 && <div className="grid gap-4 lg:grid-cols-2">{favoriteGames.map((game) => <FavoriteGameCard key={game.id} game={game} />)}</div>}
-          </section>
+          </section>}
         </div>
       </div>
-    </main>
+    </main></>
   )
 }
 

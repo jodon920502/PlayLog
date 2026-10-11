@@ -16,6 +16,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: '登入狀態已失效' })
     return
   }
+
   try {
     const payload = verifyAccessToken(token)
     req.auth = { userId: payload.sub }
@@ -23,4 +24,18 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch {
     res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: '登入狀態已失效' })
   }
+}
+
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.get('authorization')
+  const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  if (token) {
+    try {
+      const payload = verifyAccessToken(token)
+      req.auth = { userId: payload.sub }
+    } catch {
+      // Invalid optional credentials are treated as an anonymous request.
+    }
+  }
+  next()
 }
