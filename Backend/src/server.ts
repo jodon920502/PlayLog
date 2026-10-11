@@ -10,6 +10,7 @@ import gameReviewRoutes from './modules/reviews/game-review.routes.js'
 import reviewRoutes from './modules/reviews/review.routes.js'
 import homeRoutes from './modules/home/home.routes.js'
 import favoriteRoutes from './modules/favorites/favorite.routes.js'
+import rankingRoutes from './modules/rankings/ranking.routes.js'
 
 const app = express()
 const PORT = 3000
@@ -40,6 +41,7 @@ app.use('/api/games', gameRoutes)
 app.use('/api/reviews', reviewRoutes)
 app.use('/api/home', homeRoutes)
 app.use('/api/favorites', favoriteRoutes)
+app.use('/api/rankings', rankingRoutes)
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (error instanceof SyntaxError && 'status' in error && error.status === 400) {

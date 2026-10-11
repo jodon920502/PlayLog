@@ -14,11 +14,14 @@ export interface CommunityReview {
     displayName: string
     avatarUrl: string | null
   }
+  gameName?: string
+  coverImageId?: string | null
 }
 
 export interface ReviewPage {
   reviews: CommunityReview[]
   pagination: {
+    total?: number
     limit: number
     offset: number
     hasMore: boolean
@@ -52,6 +55,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function getReviews(gameId: string, sort: ReviewSort): Promise<ReviewPage> {
   const params = new URLSearchParams({ limit: '100', offset: '0', sort })
   return request<ReviewPage & { success: true }>(`/api/games/${encodeURIComponent(gameId)}/reviews?${params}`)
+}
+
+export async function getPublicReviews(sort: ReviewSort, limit = 20, offset = 0): Promise<ReviewPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset), sort })
+  return request<ReviewPage & { success: true }>(`/api/reviews?${params}`)
 }
 
 export async function getRatingSummary(gameId: string): Promise<RatingSummary> {

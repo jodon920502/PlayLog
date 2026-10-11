@@ -55,6 +55,10 @@ export default function CommunityReviewCard({
       <div className="mt-4 flex items-center gap-2">
         <span className="text-sm font-bold text-[#f2c544]">{review.rating.toFixed(1)} / 5.0</span>
       </div>
+      {review.gameName && <Link to={`/game/${review.gameId}`} className="mt-4 flex items-center gap-3 rounded-lg border border-white/[.06] bg-[#10151d] p-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c544]">
+        {review.coverImageId ? <img src={`https://images.igdb.com/igdb/image/upload/t_cover_small/${review.coverImageId}.jpg`} alt="" className="h-14 w-10 shrink-0 rounded object-cover" /> : <span className="h-14 w-10 shrink-0 rounded bg-[#20232d]" />}
+        <span className="min-w-0 truncate text-sm font-semibold text-[#eeece5] hover:text-[#f2c544]">{review.gameName}</span>
+      </Link>}
       {review.content && <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#b9bbc2]">{review.content}</p>}
     </article>
   )

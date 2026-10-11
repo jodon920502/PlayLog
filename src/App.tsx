@@ -10,6 +10,8 @@ import SearchPage from './pages/SearchPage'
 import GameDetailPage from './pages/GameDetailPage'
 import AboutPage from './pages/AboutPage'
 import FavoritesPage from './pages/FavoritesPage'
+import ReviewsPage from './pages/ReviewsPage'
+import RankingsPage from './pages/RankingsPage'
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route path="/game/:gameId" element={<GameDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/rankings" element={<RankingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

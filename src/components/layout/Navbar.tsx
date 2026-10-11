@@ -107,8 +107,9 @@ export default function Navbar() {
           Play<span className="text-[#f2c544]">Log</span>
         </Link>
         <nav className="desktop-nav flex items-center gap-5">
-          <Link className="nav-link active" to="/">首頁</Link><Link className="nav-link" to="/">探索遊戲</Link>
-          <Link className="nav-link" to="/">玩家評測</Link><Link className="nav-link" to="/">排行榜</Link><Link className="nav-link" to="/favorites">我的收藏</Link>
+          <NavLink end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/">首頁</NavLink>
+          <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/reviews">玩家評測</NavLink>
+          <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/rankings">排行榜</NavLink><NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/favorites">我的收藏</NavLink>
           <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/about">關於</NavLink>
         </nav>
         <div className="hidden items-center gap-4 sm:flex">
@@ -205,7 +206,11 @@ export default function Navbar() {
         </div>
       </div>
       {menuOpen && <div className="border-t border-white/[.06] bg-[#10131b] p-5 sm:hidden"><nav className="flex flex-col gap-5 text-sm text-[#bfc1c8]">
-        <Link to="/">首頁</Link><Link to="/">探索遊戲</Link><Link to="/">玩家評測</Link><Link to="/">排行榜</Link><Link to="/favorites">我的收藏</Link><Link to="/about">關於</Link>
+        <NavLink end className={({ isActive }) => isActive ? 'text-[#f2c544]' : undefined} to="/">首頁</NavLink>
+        <NavLink className={({ isActive }) => isActive ? 'text-[#f2c544]' : undefined} to="/reviews">玩家評測</NavLink>
+        <NavLink className={({ isActive }) => isActive ? 'text-[#f2c544]' : undefined} to="/rankings">排行榜</NavLink>
+        <NavLink className={({ isActive }) => isActive ? 'text-[#f2c544]' : undefined} to="/favorites">我的收藏</NavLink>
+        <NavLink className={({ isActive }) => isActive ? 'text-[#f2c544]' : undefined} to="/about">關於</NavLink>
         {isAuthenticated ? (
           <>
             <button onClick={() => navigate(`/profile/${profile?.id ?? user?.id ?? ''}`)} className="text-left">個人檔案</button>

@@ -35,6 +35,23 @@ export interface LocalGameSearchResult {
   pagination: { total: number; limit: number; offset: number; hasMore: boolean }
 }
 
+export type RankingSort = 'rating' | 'lowest' | 'reviews' | 'newest'
+
+export interface RankingGame {
+  id: string
+  name: string
+  coverImageId: string | null
+  firstReleaseDate: string | null
+  averageRating: number | null
+  reviewCount: number
+  rank: number | null
+}
+
+export interface RankingPage {
+  games: RankingGame[]
+  pagination: { total: number; limit: number; offset: number; hasMore: boolean }
+}
+
 export interface GameFilterOptions {
   genres: Array<{ id: string; name: string }>
   platforms: Array<{ id: string; name: string; abbreviation: string | null }>
@@ -129,6 +146,15 @@ export async function searchLocalGames(query: string, filters: LocalGameSearchFi
 export async function getGameFilterOptions(signal?: AbortSignal): Promise<GameFilterOptions> {
   const payload = await request<GameApiResponse & GameFilterOptions>('/api/games/filters', { signal })
   return { genres: payload.genres ?? [], platforms: payload.platforms ?? [] }
+}
+
+export async function getRankings(sort: RankingSort, limit = 20, offset = 0, signal?: AbortSignal): Promise<RankingPage> {
+  const params = new URLSearchParams({ sort, limit: String(limit), offset: String(offset) })
+  const payload = await request<GameApiResponse & { games?: RankingGame[] }>(`/api/rankings?${params.toString()}`, { signal })
+  return {
+    games: payload.games ?? [],
+    pagination: payload.pagination ?? { total: 0, limit, offset, hasMore: false },
+  }
 }
 
 export async function getGameById(id: string | undefined): Promise<Game | null> {

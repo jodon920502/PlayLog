@@ -18,6 +18,8 @@ export interface ReviewResponse {
   createdAt: string
   updatedAt: string
   author: ReviewAuthor
+  gameName?: string | undefined
+  coverImageId?: string | null | undefined
 }
 
 export interface ReviewInput {
@@ -35,6 +37,8 @@ interface ReviewRow {
   profile_id: string | null
   display_name: string | null
   avatar_url: string | null
+  game_name?: string
+  cover_image_id?: string | null
 }
 
 export class ReviewError extends Error {
@@ -64,6 +68,8 @@ function mapReview(row: ReviewRow): ReviewResponse {
       displayName: row.display_name ?? 'PlayLog 玩家',
       avatarUrl: row.avatar_url,
     },
+    ...(row.game_name !== undefined ? { gameName: row.game_name } : {}),
+    ...(row.cover_image_id !== undefined ? { coverImageId: row.cover_image_id } : {}),
   }
 }
 
@@ -106,6 +112,7 @@ export function parseSort(value: unknown): ReviewSort {
   if (value !== 'latest' && value !== 'oldest' && value !== 'highest' && value !== 'lowest') {
     throw new ReviewError('VALIDATION_ERROR', 'sort 必須是 latest、oldest、highest 或 lowest')
   }
+
   return value
 }
 
@@ -114,6 +121,30 @@ function sortSql(sort: ReviewSort): string {
   if (sort === 'highest') return 'r.rating DESC, r.created_at DESC, r.id DESC'
   if (sort === 'lowest') return 'r.rating ASC, r.created_at ASC, r.id ASC'
   return 'r.created_at DESC, r.id DESC'
+}
+
+export async function listPublicReviews(limit: number, offset: number, sort: ReviewSort): Promise<{ reviews: ReviewResponse[]; total: number; hasMore: boolean }> {
+  const orderBy = sortSql(sort)
+  const result = await playlogPool.query<ReviewRow>(
+    `SELECT r.id, r.game_id, r.rating::text, r.content, r.created_at, r.updated_at,
+            p.id AS profile_id, p.display_name, p.avatar_url,
+            g.name AS game_name, g.cover_image_id
+     FROM reviews r
+     LEFT JOIN profiles p ON p.account_user_id = r.user_id
+     INNER JOIN games g ON g.id = r.game_id
+     WHERE g.status = 'ACTIVE'
+     ORDER BY ${orderBy}
+     LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  )
+  const count = await playlogPool.query<{ total: string }>(
+    `SELECT COUNT(*)::text AS total
+     FROM reviews r
+     INNER JOIN games g ON g.id = r.game_id
+     WHERE g.status = 'ACTIVE'`,
+  )
+  const total = Number(count.rows[0]?.total ?? 0)
+  return { reviews: result.rows.map(mapReview), total, hasMore: offset + result.rows.length < total }
 }
 
 async function ensureGameExists(gameId: string): Promise<void> {

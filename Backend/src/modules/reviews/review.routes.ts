@@ -1,8 +1,24 @@
 import { Router, type Response } from 'express'
 import { requireAuth } from '../../middleware/auth.middleware.js'
-import { deleteReview, ReviewError, updateReview, isValidUuid } from './review.service.js'
+import { deleteReview, ReviewError, updateReview, isValidUuid, listPublicReviews, parsePagination, parseSort } from './review.service.js'
 
 const router = Router()
+
+router.get('/', async (req, res) => {
+  try {
+    const { limit, offset } = parsePagination(req.query.limit, req.query.offset)
+    const sort = parseSort(req.query.sort)
+    const result = await listPublicReviews(limit, offset, sort)
+    res.json({ success: true, reviews: result.reviews, pagination: { total: result.total, limit, offset, hasMore: result.hasMore } })
+  } catch (error) {
+    if (error instanceof ReviewError) {
+      res.status(400).json({ success: false, code: error.code, message: error.message })
+      return
+    }
+    console.error('List public reviews failed', error)
+    res.status(500).json({ success: false, code: 'INTERNAL_SERVER_ERROR', message: '評論服務暫時無法使用' })
+  }
+})
 
 function handleReviewError(error: unknown, res: Response) {
   if (error instanceof ReviewError) {
