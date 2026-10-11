@@ -10,6 +10,7 @@ export interface CommunityReview {
   createdAt: string
   updatedAt: string
   author: {
+    profileId: string | null
     displayName: string
     avatarUrl: string | null
   }

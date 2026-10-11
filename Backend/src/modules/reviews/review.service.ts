@@ -5,6 +5,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 export type ReviewSort = 'latest' | 'oldest' | 'highest' | 'lowest'
 
 export interface ReviewAuthor {
+  profileId: string | null
   displayName: string
   avatarUrl: string | null
 }
@@ -31,6 +32,7 @@ interface ReviewRow {
   content: string | null
   created_at: Date
   updated_at: Date
+  profile_id: string | null
   display_name: string | null
   avatar_url: string | null
 }
@@ -58,6 +60,7 @@ function mapReview(row: ReviewRow): ReviewResponse {
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     author: {
+      profileId: row.profile_id,
       displayName: row.display_name ?? 'PlayLog 玩家',
       avatarUrl: row.avatar_url,
     },
@@ -82,7 +85,7 @@ function normalizeContent(value: unknown): string | null {
 
 function reviewQuery(orderBy: string): string {
   return `SELECT r.id, r.game_id, r.rating::text, r.content, r.created_at, r.updated_at,
-                 p.display_name, p.avatar_url
+                 p.id AS profile_id, p.display_name, p.avatar_url
           FROM reviews r
           LEFT JOIN profiles p ON p.account_user_id = r.user_id
           WHERE r.game_id = $1
@@ -124,7 +127,7 @@ async function getReviewRow(reviewId: string, userId?: string): Promise<ReviewRo
   if (userId) values.push(userId)
   const result = await playlogPool.query<ReviewRow>(
     `SELECT r.id, r.game_id, r.rating::text, r.content, r.created_at, r.updated_at,
-            p.display_name, p.avatar_url
+            p.id AS profile_id, p.display_name, p.avatar_url
      FROM reviews r
      LEFT JOIN profiles p ON p.account_user_id = r.user_id
      WHERE r.id = $1${ownerClause}
@@ -157,7 +160,7 @@ export async function getMyReview(gameId: string, userId: string): Promise<Revie
   await ensureGameExists(gameId)
   const result = await playlogPool.query<ReviewRow>(
     `SELECT r.id, r.game_id, r.rating::text, r.content, r.created_at, r.updated_at,
-            p.display_name, p.avatar_url
+            p.id AS profile_id, p.display_name, p.avatar_url
      FROM reviews r
      LEFT JOIN profiles p ON p.account_user_id = r.user_id
      WHERE r.game_id = $1 AND r.user_id = $2
@@ -179,7 +182,7 @@ export async function createReview(gameId: string, userId: string, input: Review
       `INSERT INTO reviews (game_id, user_id, rating, content)
        VALUES ($1, $2, $3, $4)
        RETURNING id, game_id, rating::text, content, created_at, updated_at,
-                 NULL::varchar AS display_name, NULL::text AS avatar_url`,
+                 NULL::uuid AS profile_id, NULL::varchar AS display_name, NULL::text AS avatar_url`,
       [gameId, userId, rating, content],
     )
     const created = result.rows[0]

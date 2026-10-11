@@ -1,5 +1,5 @@
 .app-shell { min-height: 100vh; background: radial-gradient(circle at 74% 0%, #1c2233 0%, #0b0d13 32rem); }
-.page-width { width: min(1240px, calc(100% - 48px)); margin: 0 auto; }
+.page-width { width: min(1440px, calc(100% - 48px)); margin: 0 auto; }
 .nav-link { color: #a5a8b3; font-size: 14px; font-weight: 500; transition: color .2s; }
 .nav-link:hover, .nav-link.active { color: #f5c84b; }
 .hero-glow { position: absolute; inset: 0; background: linear-gradient(90deg, #11141d 0%, rgba(17,20,29,.7) 35%, rgba(17,20,29,.22) 70%, #11141d 100%), linear-gradient(0deg, #11141d 0%, transparent 35%); }
@@ -13,6 +13,7 @@
 .poster-shine { background: linear-gradient(130deg, rgba(255,255,255,.15), transparent 34%); }
 .score-ring { box-shadow: inset 0 0 0 2px #f2c544; }
 .filter-select { appearance: none; background: #171a23; border: 1px solid #292d38; color: #d6d5d0; }
+.filter-select:focus { border-color: #f2c544; outline: 2px solid rgba(242,197,68,.22); outline-offset: 1px; }
 .login-page { position: relative; overflow: hidden; background: radial-gradient(circle at 50% -10%, #222b45 0%, #0b0d13 46rem); }
 .login-card { border: 1px solid rgba(255,255,255,.09); background: rgba(19,22,31,.86); box-shadow: 0 24px 80px rgba(0,0,0,.35); backdrop-filter: blur(18px); }
 .login-input { border: 1px solid #2d323e; background: #12151d; transition: border-color .2s, box-shadow .2s; }
@@ -22,7 +23,7 @@
 .login-orb-two { right: 12%; bottom: 10%; width: 260px; height: 260px; background: #4766d8; filter: blur(120px); }
 
 @media (max-width: 700px) {
-  .page-width { width: min(100% - 28px, 1240px); }
+  .page-width { width: min(100% - 28px, 1440px); }
   .hero-content { padding-top: 190px; }
   .hero-title { font-size: 42px !important; }
 }

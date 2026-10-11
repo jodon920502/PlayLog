@@ -7,7 +7,37 @@ interface GameApiResponse {
   success: boolean
   games?: Game[]
   game?: Game
+  pagination?: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
   error?: { code?: string; message?: string }
+}
+
+export type LocalGameSort = 'relevance' | 'newest' | 'oldest' | 'rating' | 'reviews' | 'name'
+
+export interface LocalGameSearchFilters {
+  genres: string[]
+  platforms: string[]
+  yearFrom?: number
+  yearTo?: number
+  minRating?: number
+  ratedOnly: boolean
+  sort: LocalGameSort
+  limit: number
+  offset: number
+}
+
+export interface LocalGameSearchResult {
+  games: Game[]
+  pagination: { total: number; limit: number; offset: number; hasMore: boolean }
+}
+
+export interface GameFilterOptions {
+  genres: Array<{ id: string; name: string }>
+  platforms: Array<{ id: string; name: string; abbreviation: string | null }>
 }
 
 interface RawExternalGame {
@@ -72,11 +102,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload
 }
 
-export async function searchGames(query: string): Promise<Game[]> {
+export async function searchGames(query: string, signal?: AbortSignal): Promise<Game[]> {
   const normalizedQuery = query.trim()
   if (!normalizedQuery) return []
-  const payload = await request<GameApiResponse>(`/api/games/search?q=${encodeURIComponent(normalizedQuery)}`)
+  const payload = await request<GameApiResponse>(`/api/games/search?q=${encodeURIComponent(normalizedQuery)}`, { signal })
   return payload.games ?? []
+}
+
+export async function searchLocalGames(query: string, filters: LocalGameSearchFilters, signal?: AbortSignal): Promise<LocalGameSearchResult> {
+  const normalizedQuery = query.trim()
+  const params = new URLSearchParams({ limit: String(filters.limit), offset: String(filters.offset), sort: filters.sort })
+  if (normalizedQuery) params.set('q', normalizedQuery)
+  if (filters.genres.length > 0) params.set('genre', filters.genres.join(','))
+  if (filters.platforms.length > 0) params.set('platform', filters.platforms.join(','))
+  if (filters.yearFrom !== undefined) params.set('yearFrom', String(filters.yearFrom))
+  if (filters.yearTo !== undefined) params.set('yearTo', String(filters.yearTo))
+  if (filters.minRating !== undefined) params.set('minRating', String(filters.minRating))
+  if (filters.ratedOnly) params.set('ratedOnly', 'true')
+  const payload = await request<GameApiResponse>(`/api/games/search?${params.toString()}`, { signal })
+  return {
+    games: payload.games ?? [],
+    pagination: payload.pagination ?? { total: payload.games?.length ?? 0, limit: filters.limit, offset: filters.offset, hasMore: false },
+  }
+}
+
+export async function getGameFilterOptions(signal?: AbortSignal): Promise<GameFilterOptions> {
+  const payload = await request<GameApiResponse & GameFilterOptions>('/api/games/filters', { signal })
+  return { genres: payload.genres ?? [], platforms: payload.platforms ?? [] }
 }
 
 export async function getGameById(id: string | undefined): Promise<Game | null> {

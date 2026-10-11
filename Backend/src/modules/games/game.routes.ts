@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { GameNotFoundError, getGameById, importGameFromIgdb, searchLocalGames } from './game.service.js'
+import { GameNotFoundError, getGameById, getGameFilterOptions, importGameFromIgdb, searchLocalGames, type LocalGameSearchOptions, type LocalGameSort } from './game.service.js'
 import { getSteamAppIdByIgdbId, IgdbServiceError, searchGames } from '../../integrations/igdb.service.js'
 import { getSteamStoreLocalization, SteamLanguageValidationError, SteamServiceError, SteamValidationError } from '../../integrations/steam.service.js'
 
@@ -32,17 +32,51 @@ router.get('/external/search', async (req, res) => {
 
 router.get('/search', async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : ''
-  if (!query) {
-    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: '請提供搜尋關鍵字' } })
+
+  const readList = (value: unknown) => {
+    if (typeof value !== 'string') return []
+    return value.split(',').map((item) => item.trim()).filter(Boolean)
+  }
+  const genres = [...readList(req.query.genre), ...readList(req.query.genres)]
+  const platforms = [...readList(req.query.platform), ...readList(req.query.platforms)]
+  const yearFrom = req.query.yearFrom === undefined ? undefined : Number(req.query.yearFrom)
+  const yearTo = req.query.yearTo === undefined ? undefined : Number(req.query.yearTo)
+  const minRating = req.query.minRating === undefined ? undefined : Number(req.query.minRating)
+  const limit = req.query.limit === undefined ? 20 : Number(req.query.limit)
+  const offset = req.query.offset === undefined ? 0 : Number(req.query.offset)
+  const sort = typeof req.query.sort === 'string' ? req.query.sort : 'relevance'
+  const ratedOnly = req.query.ratedOnly === 'true'
+  const sortValues = new Set(['relevance', 'newest', 'oldest', 'rating', 'reviews', 'name'])
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  const validYear = (value: number | undefined) => value === undefined || (Number.isInteger(value) && value >= 1900 && value <= 2200)
+  if (genres.some((id) => !uuid.test(id)) || platforms.some((id) => !uuid.test(id)) ||
+      !validYear(yearFrom) || !validYear(yearTo) || (yearFrom !== undefined && yearTo !== undefined && yearFrom > yearTo) ||
+      (minRating !== undefined && (!Number.isFinite(minRating) || minRating < 0.5 || minRating > 5 || Math.round(minRating * 2) !== minRating * 2)) ||
+      !Number.isInteger(limit) || limit < 1 || limit > 50 || !Number.isInteger(offset) || offset < 0 ||
+      !sortValues.has(sort)) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: '搜尋篩選條件無效' } })
     return
   }
 
   try {
-    const games = await searchLocalGames(query)
-    res.json({ success: true, games })
+    const searchOptions: LocalGameSearchOptions = { genres, platforms, ratedOnly, sort: sort as LocalGameSort, limit, offset }
+    if (yearFrom !== undefined) searchOptions.yearFrom = yearFrom
+    if (yearTo !== undefined) searchOptions.yearTo = yearTo
+    if (minRating !== undefined) searchOptions.minRating = minRating
+    const result = await searchLocalGames(query, searchOptions)
+    res.json({ success: true, games: result.games, pagination: { total: result.total, limit: result.limit, offset: result.offset, hasMore: result.offset + result.games.length < result.total } })
   } catch (error) {
     console.error('Local game search failed', error instanceof Error ? error.message : 'Unknown error')
     res.status(500).json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: '遊戲搜尋服務暫時無法使用' } })
+  }
+})
+
+router.get('/filters', async (_req, res) => {
+  try {
+    res.json({ success: true, ...(await getGameFilterOptions()) })
+  } catch (error) {
+    console.error('Game filter metadata lookup failed', error instanceof Error ? error.message : 'Unknown error')
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: '遊戲篩選資料暫時無法使用' } })
   }
 })
 

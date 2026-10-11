@@ -3,7 +3,9 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { updateMyProfile } from '../api/profileApi'
 import { useAuth } from '../context/AuthContext'
+import { getAccessToken } from '../lib/authApi'
 import '../App.css'
+import { useDisplayNameAvailability } from '../hooks/useDisplayNameAvailability'
 
 function ProfileEditPage() {
   const navigate = useNavigate()
@@ -14,6 +16,7 @@ function ProfileEditPage() {
   const [bannerUrl, setBannerUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const nameCheck = useDisplayNameAvailability(displayName, { initialValue: profile?.displayName, forCurrentUser: true })
 
   useEffect(() => {
     if (!profile) {
@@ -36,13 +39,17 @@ function ProfileEditPage() {
       setError('尚未登入，請重新登入後再試。')
       return
     }
+    if (!nameCheck.isValidFormat || nameCheck.isChecking || (!nameCheck.isUnchanged && !nameCheck.isAvailable)) {
+      setError(nameCheck.hasWhitespace ? '顯示名稱不可包含空白' : nameCheck.isTaken ? '此玩家名稱已被使用' : '請先完成玩家名稱檢查')
+      return
+    }
 
     setLoading(true)
     setError('')
 
     try {
       const nextProfile = await updateMyProfile(accessToken, {
-        displayName: displayName.trim() || null,
+        displayName,
         bio: bio.trim() || null,
         avatarUrl: avatarUrl.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
@@ -51,7 +58,7 @@ function ProfileEditPage() {
       setSession({
         user: { id: profile.accountUserId, username: profile.displayName },
         profile: nextProfile,
-        accessToken,
+        accessToken: getAccessToken() ?? accessToken,
       })
       navigate(`/profile/${nextProfile.id}`)
     } catch (requestError) {
@@ -78,7 +85,13 @@ function ProfileEditPage() {
         <div className="grid gap-5 md:grid-cols-2">
           <label className="block md:col-span-2">
             <span className="mb-2 block text-xs font-semibold text-[#c7c6c0]">顯示名稱</span>
-            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="w-full rounded-xl border border-white/[.08] bg-[#151b23] px-3 py-3 text-sm text-white outline-none focus:border-[#f2c544]/60" maxLength={50} />
+            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} className={`w-full rounded-xl border bg-[#151b23] px-3 py-3 text-sm text-white outline-none focus:border-[#f2c544]/60 ${!nameCheck.isValidFormat || nameCheck.isTaken || nameCheck.hasError ? 'border-red-400/70' : nameCheck.isAvailable ? 'border-emerald-400/60' : 'border-white/[.08]'}`} maxLength={30} aria-invalid={!nameCheck.isValidFormat || nameCheck.isTaken || nameCheck.hasError} />
+            {!nameCheck.isValidFormat && <p className="mt-1 text-xs text-red-300">{nameCheck.hasWhitespace ? '顯示名稱不可包含空白' : '顯示名稱長度必須介於 1 到 30 個字元'}</p>}
+            {nameCheck.isChecking && <p className="mt-1 text-xs text-[#a5a7af]">正在檢查名稱...</p>}
+            {nameCheck.isTaken && <p className="mt-1 text-xs text-red-300">此玩家名稱已被使用</p>}
+            {nameCheck.hasError && <p className="mt-1 text-xs text-red-300">無法檢查玩家名稱，請稍後再試</p>}
+            {nameCheck.isUnchanged && <p className="mt-1 text-xs text-[#a5a7af]">目前使用中的名稱</p>}
+            {!nameCheck.isUnchanged && nameCheck.isAvailable && <p className="mt-1 text-xs text-emerald-300">此名稱可以使用</p>}
           </label>
 
           <label className="block md:col-span-2">
@@ -101,7 +114,7 @@ function ProfileEditPage() {
 
         <div className="mt-8 flex items-center justify-end gap-3">
           <button type="button" onClick={() => navigate('/')} className="rounded-lg border border-white/[.08] px-4 py-2 text-sm text-[#dfe2ea]">取消</button>
-          <button type="submit" disabled={loading} className="gold-button rounded-lg px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={loading || (!nameCheck.isAvailable && !nameCheck.isUnchanged) || nameCheck.isChecking} className="gold-button rounded-lg px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60">
             {loading ? '儲存中...' : '儲存變更'}
           </button>
         </div>

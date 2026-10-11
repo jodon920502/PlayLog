@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { searchGames } from '../../services/gameService'
+import { useGameAutocomplete } from '../../hooks/useGameAutocomplete'
+import { formatGenreName } from '../../utils/gameDisplay'
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -16,7 +17,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const [autocompleteResults, setAutocompleteResults] = useState<Awaited<ReturnType<typeof searchGames>>>([])
+  const { results: autocompleteResults, isLoading: autocompleteLoading, error: autocompleteError } = useGameAutocomplete(searchQuery)
   const { user, profile, isAuthenticated, isLoading, logout } = useAuth()
 
   useEffect(() => {
@@ -43,23 +44,7 @@ export default function Navbar() {
     setHighlightedIndex(-1)
   }, [location.pathname, searchParams])
 
-  useEffect(() => {
-    let cancelled = false
-    const query = searchQuery.trim()
-    if (!query) {
-      setAutocompleteResults([])
-      return () => { cancelled = true }
-    }
-    searchGames(query)
-      .then((games) => {
-        if (!cancelled) setAutocompleteResults(games.slice(0, 5))
-      })
-      .catch(() => {
-        if (!cancelled) setAutocompleteResults([])
-      })
-    return () => { cancelled = true }
-  }, [searchQuery])
-  const showSearchDropdown = searchFocused && Boolean(searchQuery.trim())
+  const showSearchDropdown = searchFocused && searchQuery.trim().length >= 2
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -123,7 +108,7 @@ export default function Navbar() {
         </Link>
         <nav className="desktop-nav flex items-center gap-5">
           <Link className="nav-link active" to="/">首頁</Link><Link className="nav-link" to="/">探索遊戲</Link>
-          <Link className="nav-link" to="/">玩家評測</Link><Link className="nav-link" to="/">排行榜</Link><Link className="nav-link" to="/">我的收藏</Link>
+          <Link className="nav-link" to="/">玩家評測</Link><Link className="nav-link" to="/">排行榜</Link><Link className="nav-link" to="/favorites">我的收藏</Link>
           <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} to="/about">關於</NavLink>
         </nav>
         <div className="hidden items-center gap-4 sm:flex">
@@ -153,7 +138,7 @@ export default function Navbar() {
             </form>
             {showSearchDropdown && (
               <div id="navbar-search-results" role="listbox" className="absolute left-0 top-full z-50 mt-2 w-[380px] max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto rounded-xl border border-white/[.08] bg-[#10151d] shadow-2xl shadow-black/40">
-                {autocompleteResults.length > 0 ? (
+                {autocompleteLoading ? <p className="p-3 text-xs text-[#a5a7af]">搜尋中...</p> : autocompleteError ? <p className="p-3 text-xs text-[#e59b9b]">{autocompleteError}</p> : autocompleteResults.length > 0 ? (
                   <>
                     {autocompleteResults.map((game, index) => (
                       <button
@@ -170,7 +155,7 @@ export default function Navbar() {
                         {game.cover || game.coverImageId ? <img src={game.cover ?? `https://images.igdb.com/igdb/image/upload/t_cover_small/${game.coverImageId}.jpg`} alt="" className="h-11 w-9 shrink-0 rounded object-cover" /> : <span className="h-11 w-9 shrink-0 rounded bg-[#20232d]" />}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-[#eeece5]">{game.displayName ?? game.name}</span>
-                          <span className="mt-1 block truncate text-[10px] text-[#777b86]">{game.genres?.[0]?.name ?? game.genre ?? '遊戲'}</span>
+                          <span className="mt-1 block truncate text-[10px] text-[#777b86]">{formatGenreName(game.genres?.[0]?.name ?? game.genre ?? '遊戲')}</span>
                         </span>
                       </button>
                     ))}
@@ -214,10 +199,13 @@ export default function Navbar() {
           )}
           <button className="gold-button hidden rounded-lg px-4 py-2 text-xs md:block"><PenLine size={14} className="mr-1.5 inline" />撰寫評測</button>
         </div>
-        <button className="text-[#d9d7d0] sm:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="開啟選單">{menuOpen ? <X /> : <Menu />}</button>
+        <div className="flex items-center gap-3 sm:hidden">
+          <button type="button" className="rounded-md p-2 text-[#d9d7d0] hover:bg-white/10 hover:text-white" onClick={() => navigate('/search')} aria-label="搜尋遊戲"><Search size={20} /></button>
+          <button type="button" className="rounded-md p-2 text-[#d9d7d0] hover:bg-white/10 hover:text-white" onClick={() => setMenuOpen(!menuOpen)} aria-label="開啟選單">{menuOpen ? <X /> : <Menu />}</button>
+        </div>
       </div>
       {menuOpen && <div className="border-t border-white/[.06] bg-[#10131b] p-5 sm:hidden"><nav className="flex flex-col gap-5 text-sm text-[#bfc1c8]">
-        <Link to="/">首頁</Link><Link to="/">探索遊戲</Link><Link to="/">玩家評測</Link><Link to="/">排行榜</Link><Link to="/">我的收藏</Link><Link to="/about">關於</Link>
+        <Link to="/">首頁</Link><Link to="/">探索遊戲</Link><Link to="/">玩家評測</Link><Link to="/">排行榜</Link><Link to="/favorites">我的收藏</Link><Link to="/about">關於</Link>
         {isAuthenticated ? (
           <>
             <button onClick={() => navigate(`/profile/${profile?.id ?? user?.id ?? ''}`)} className="text-left">個人檔案</button>

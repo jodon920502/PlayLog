@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage'
 import SearchPage from './pages/SearchPage'
 import GameDetailPage from './pages/GameDetailPage'
 import AboutPage from './pages/AboutPage'
+import FavoritesPage from './pages/FavoritesPage'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/game/:gameId" element={<GameDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

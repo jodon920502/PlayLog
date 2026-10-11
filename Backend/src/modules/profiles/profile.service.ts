@@ -1,6 +1,11 @@
 import { pool, playlogPool } from '../../config/db.js'
+import { displayNameValidationMessage, isValidDisplayName } from '../../utils/displayName.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === '23505'
+}
 
 export interface ProfileRecord {
   id: string
@@ -33,6 +38,13 @@ export interface PublicProfileResponse {
   createdAt: string
 }
 
+export interface PlayerSearchResult {
+  userId: string
+  displayName: string
+  avatar: string | null
+  bio: string | null
+}
+
 export interface ProfileReviewResponse {
   id: string
   gameId: string
@@ -46,7 +58,7 @@ export interface ProfileReviewResponse {
 
 export class ProfileError extends Error {
   constructor(
-    public readonly code: 'VALIDATION_ERROR' | 'NOT_FOUND',
+    public readonly code: 'VALIDATION_ERROR' | 'NOT_FOUND' | 'DISPLAY_NAME_TAKEN',
     message: string,
   ) {
     super(message)
@@ -114,6 +126,15 @@ function mapPublicProfile(row: ProfileRecord): PublicProfileResponse {
   }
 }
 
+function parsePlayerSearchPagination(limitValue: unknown, offsetValue: unknown): { limit: number; offset: number } {
+  const limit = limitValue === undefined ? 20 : Number(limitValue)
+  const offset = offsetValue === undefined ? 0 : Number(offsetValue)
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50 || !Number.isSafeInteger(offset) || offset < 0) {
+    throw new ProfileError('VALIDATION_ERROR', 'limit 必須是 1 到 50 的整數，offset 必須是非負整數')
+  }
+  return { limit, offset }
+}
+
 function isValidUrl(value: string): boolean {
   try {
     const parsed = new URL(value)
@@ -135,9 +156,8 @@ export function normalizeProfileUpdate(body: unknown): {
   const displayName = patch.display_name ?? patch.displayName
   if (displayName !== undefined) {
     if (typeof displayName !== 'string') throw new ProfileError('VALIDATION_ERROR', 'display_name 必須是字串')
-    const trimmed = displayName.trim()
-    if (!trimmed || trimmed.length > 50) throw new ProfileError('VALIDATION_ERROR', 'display_name 必須介於 1 到 50 個字元')
-    result.displayName = trimmed
+    if (!isValidDisplayName(displayName)) throw new ProfileError('VALIDATION_ERROR', displayNameValidationMessage(displayName))
+    result.displayName = displayName
   }
 
   const avatarUrl = patch.avatar_url ?? patch.avatarUrl
@@ -178,6 +198,33 @@ export function normalizeProfileUpdate(body: unknown): {
   }
 
   return result
+}
+
+export async function checkDisplayNameAvailability(displayName: string, excludeProfileId?: string): Promise<boolean> {
+  if (!isValidDisplayName(displayName)) return false
+  const values: unknown[] = [displayName]
+  let exclusion = ''
+  if (excludeProfileId) {
+    if (!UUID_PATTERN.test(excludeProfileId)) return false
+    values.push(excludeProfileId)
+    exclusion = ' AND id <> $2'
+  }
+
+  const result = await playlogPool.query(
+    `SELECT 1 FROM profiles
+     WHERE lower(btrim(display_name)) = lower(btrim($1))${exclusion}
+     LIMIT 1`,
+    values,
+  )
+  return !result.rowCount
+}
+
+export async function checkMyDisplayNameAvailability(userId: string, displayName: string): Promise<boolean> {
+  const profile = await playlogPool.query<{ id: string }>(
+    'SELECT id FROM profiles WHERE account_user_id = $1 LIMIT 1',
+    [userId],
+  )
+  return checkDisplayNameAvailability(displayName, profile.rows[0]?.id)
 }
 
 export async function getOrCreateMyProfile(userId: string): Promise<ProfileResponse> {
@@ -224,6 +271,51 @@ export async function getPublicProfile(profileId: string): Promise<PublicProfile
   )
 
   return result.rows[0] ? mapPublicProfile(result.rows[0]) : null
+}
+
+export async function searchPlayers(
+  queryValue: unknown,
+  limitValue: unknown,
+  offsetValue: unknown,
+): Promise<{ players: PlayerSearchResult[]; total: number; limit: number; offset: number }> {
+  const query = typeof queryValue === 'string' ? queryValue.trim() : ''
+  const { limit, offset } = parsePlayerSearchPagination(limitValue, offsetValue)
+  if (!query) return { players: [], total: 0, limit, offset }
+  if (query.length > 100) {
+    throw new ProfileError('VALIDATION_ERROR', '搜尋關鍵字不可超過 100 個字元')
+  }
+
+  const [countResult, result] = await Promise.all([
+    playlogPool.query<{ total: string }>(
+      'SELECT COUNT(*)::text AS total FROM profiles WHERE display_name ILIKE $1',
+      [`%${query}%`],
+    ),
+    playlogPool.query<{
+    user_id: string
+    display_name: string
+    avatar_url: string | null
+    bio: string | null
+  }>(
+    `SELECT id AS user_id, display_name, avatar_url, bio
+     FROM profiles
+     WHERE display_name ILIKE $1
+     ORDER BY display_name ASC, id ASC
+     LIMIT $2 OFFSET $3`,
+    [`%${query}%`, limit, offset],
+    ),
+  ])
+
+  return {
+    players: result.rows.map((row) => ({
+      userId: row.user_id,
+      displayName: row.display_name,
+      avatar: row.avatar_url,
+      bio: row.bio,
+    })),
+    total: Number(countResult.rows[0]?.total ?? 0),
+    limit,
+    offset,
+  }
 }
 
 export async function listProfileReviews(
@@ -298,13 +390,19 @@ export async function updateMyProfile(userId: string, body: unknown): Promise<Pr
   fields.push(`updated_at = NOW()`)
   values.push(userId)
 
-  const result = await playlogPool.query<ProfileRecord>(
-    `UPDATE profiles
-     SET ${fields.join(', ')}
-     WHERE account_user_id = $${index}
-     RETURNING *`,
-    values,
-  )
+  let result
+  try {
+    result = await playlogPool.query<ProfileRecord>(
+      `UPDATE profiles
+       SET ${fields.join(', ')}
+       WHERE account_user_id = $${index}
+       RETURNING *`,
+      values,
+    )
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new ProfileError('DISPLAY_NAME_TAKEN', '此玩家名稱已被使用')
+    throw error
+  }
 
   const updated = result.rows[0]
   if (!updated) {

@@ -3,15 +3,16 @@ import { Link } from 'react-router-dom'
 import { getIgdbCoverUrl } from '../../services/gameService'
 import type { Game } from '../../types/game'
 import GameScore from './GameScore'
+import { formatGenreName, formatPlatformName } from '../../utils/gameDisplay'
 
 export default function GameCard({ game }: { game: Game }) {
   const title = game.displayName ?? game.name
   const cover = game.cover ?? getIgdbCoverUrl(game.coverImageId)
   const firstPlatform = game.platforms[0]
   const platformLabel = typeof firstPlatform === 'string'
-    ? `${firstPlatform}${game.platforms.length > 1 ? ` +${game.platforms.length - 1}` : ''}`
-    : firstPlatform ? `${firstPlatform.name}${game.platforms.length > 1 ? ` +${game.platforms.length - 1}` : ''}` : '平台資料待補'
-  const genreLabel = game.genre ?? game.genres?.[0]?.name ?? '類型資料待補'
+    ? `${formatPlatformName(firstPlatform)}${game.platforms.length > 1 ? ` +${game.platforms.length - 1}` : ''}`
+    : firstPlatform ? `${formatPlatformName(firstPlatform.name)}${game.platforms.length > 1 ? ` +${game.platforms.length - 1}` : ''}` : '平台資料待補'
+  const genreLabel = formatGenreName(game.genre ?? game.genres?.[0]?.name ?? '類型資料待補')
 
   return <Link to={`/game/${game.id}`} aria-label={`查看 ${title}`} className="group block overflow-hidden rounded-xl border border-white/[.07] bg-[#151821] transition hover:-translate-y-1 hover:border-[#f2c544]/40">
     <div className="relative aspect-[4/5] overflow-hidden">{cover ? <img className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={cover} alt={title} /> : <div className="flex h-full items-center justify-center bg-[#20232d] px-4 text-center text-xs text-[#81848f]">目前尚無封面</div>}<div className="poster-shine absolute inset-0" /></div>

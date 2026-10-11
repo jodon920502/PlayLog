@@ -2,12 +2,13 @@ import { Router } from 'express'
 import { AuthError, createLoginSession, getActiveUser, loginUser, refreshLoginSession, registerUser, revokeRefreshSession } from './auth.service.js'
 import { requireAuth } from '../../middleware/auth.middleware.js'
 import { REFRESH_TOKEN_TTL_MS } from './token.service.js'
+import { displayNameValidationMessage, isValidDisplayName } from '../../utils/displayName.js'
 
 const router = Router()
 
 function sendAuthError(res: Parameters<Parameters<Router['post']>[1]>[1], error: unknown) {
   if (error instanceof AuthError) {
-    const status = error.code === 'USERNAME_EXISTS' || error.code === 'EMAIL_EXISTS' ? 409 : 401
+    const status = error.code === 'USERNAME_EXISTS' || error.code === 'EMAIL_EXISTS' ? 409 : error.code === 'VALIDATION_ERROR' ? 400 : 401
     res.status(status).json({ success: false, code: error.code, message: error.message })
     return
   }
@@ -25,10 +26,10 @@ function validateCredentials(body: unknown): { email: string; password: string }
 
 router.post('/register', async (req, res) => {
   const body = req.body as Record<string, unknown> | undefined
-  const username = typeof body?.username === 'string' ? body.username.trim() : ''
+  const username = typeof body?.username === 'string' ? body.username : ''
   const credentials = validateCredentials(body)
-  if (username.length < 3 || username.length > 50 || typeof credentials === 'string') {
-    res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: username.length < 3 || username.length > 50 ? '使用者名稱長度必須介於 3 到 50 個字元' : credentials })
+  if (!isValidDisplayName(username) || typeof credentials === 'string') {
+    res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: !isValidDisplayName(username) ? displayNameValidationMessage(username) : credentials })
     return
   }
   try {

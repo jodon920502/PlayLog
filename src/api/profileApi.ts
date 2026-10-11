@@ -1,4 +1,5 @@
-﻿import { API_URL } from '../lib/authApi'
+import { API_URL, fetchWithAuth } from '../lib/authApi'
+import type { Game } from '../types/game'
 
 export interface PlayProfile {
   id: string
@@ -40,6 +41,16 @@ export interface ProfileReviewPage {
   }
 }
 
+export interface PublicFavoriteGamesPage {
+  games: Game[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+}
+
 interface ProfileApiResponse<T> {
   success: boolean
   profile?: T
@@ -53,8 +64,21 @@ interface ProfileReviewsApiResponse {
   message?: string
 }
 
+export async function checkDisplayNameAvailability(displayName: string, forCurrentUser = false, signal?: AbortSignal): Promise<boolean> {
+  const params = new URLSearchParams({ displayName })
+  const path = forCurrentUser ? '/api/profile/me/display-name-availability' : '/api/profile/display-name-availability'
+  const response = forCurrentUser
+    ? await fetchWithAuth(`${API_URL}${path}?${params}`, { credentials: 'include', signal })
+    : await fetch(`${API_URL}${path}?${params}`, { credentials: 'include', signal })
+  const data = await response.json() as { success: boolean; available?: boolean; message?: string }
+  if (!response.ok || !data.success || data.available === undefined) {
+    throw new Error(data.message ?? '無法檢查玩家名稱')
+  }
+  return data.available
+}
+
 export async function getMyProfile(accessToken: string): Promise<PlayProfile> {
-  const response = await fetch(`${API_URL}/api/profile/me`, {
+  const response = await fetchWithAuth(`${API_URL}/api/profile/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
     credentials: 'include',
   })
@@ -76,7 +100,7 @@ export async function updateMyProfile(accessToken: string, data: {
   banner_url?: string | null
   bannerUrl?: string | null
 }): Promise<PlayProfile> {
-  const response = await fetch(`${API_URL}/api/profile/me`, {
+  const response = await fetchWithAuth(`${API_URL}/api/profile/me`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -111,5 +135,16 @@ export async function getProfileReviews(profileId: string, limit = 10, offset = 
   if (!response.ok || !data.success || !data.reviews || !data.pagination) {
     throw new Error(data.message ?? '無法取得玩家評測')
   }
+
   return { reviews: data.reviews, pagination: data.pagination }
+}
+
+export async function getPublicProfileFavorites(profileId: string, limit = 20, offset = 0): Promise<PublicFavoriteGamesPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const response = await fetch(`${API_URL}/api/profile/${encodeURIComponent(profileId)}/favorites?${params}`, { credentials: 'include' })
+  const data = await response.json() as { success: boolean; games?: Game[]; pagination?: PublicFavoriteGamesPage['pagination']; message?: string }
+  if (!response.ok || !data.success || !data.games || !data.pagination) {
+    throw new Error(data.message ?? '無法取得收藏遊戲')
+  }
+  return { games: data.games, pagination: data.pagination }
 }

@@ -1,8 +1,9 @@
 import argon2 from 'argon2'
 import type { Request } from 'express'
 import { isIP } from 'node:net'
-import { pool } from '../../config/db.js'
+import { pool, playlogPool } from '../../config/db.js'
 import { createAccessToken, createRefreshToken, hashRefreshToken, REFRESH_TOKEN_TTL_MS } from './token.service.js'
+import { displayNameValidationMessage, isValidDisplayName } from '../../utils/displayName.js'
 
 export interface RegisterInput {
   username: string
@@ -23,7 +24,7 @@ export interface LoginSession {
 
 export class AuthError extends Error {
   constructor(
-    public readonly code: 'USERNAME_EXISTS' | 'EMAIL_EXISTS' | 'INVALID_CREDENTIALS' | 'ACCOUNT_DISABLED' | 'INVALID_REFRESH_TOKEN',
+    public readonly code: 'USERNAME_EXISTS' | 'EMAIL_EXISTS' | 'INVALID_CREDENTIALS' | 'ACCOUNT_DISABLED' | 'INVALID_REFRESH_TOKEN' | 'VALIDATION_ERROR',
     message: string,
   ) {
     super(message)
@@ -35,16 +36,25 @@ function isUniqueViolation(error: unknown): error is { code: string; constraint?
 }
 
 function duplicateCode(constraint?: string): 'USERNAME_EXISTS' | 'EMAIL_EXISTS' {
-  return constraint?.toLowerCase().includes('username') ? 'USERNAME_EXISTS' : 'EMAIL_EXISTS'
+  const normalizedConstraint = constraint?.toLowerCase() ?? ''
+  return normalizedConstraint.includes('username') ? 'USERNAME_EXISTS' : 'EMAIL_EXISTS'
 }
 
 export async function registerUser(input: RegisterInput): Promise<AuthUser> {
+  if (!isValidDisplayName(input.username)) {
+    throw new AuthError('VALIDATION_ERROR', displayNameValidationMessage(input.username))
+  }
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
     const existingUsername = await client.query('SELECT 1 FROM users WHERE username = $1 LIMIT 1', [input.username])
     if (existingUsername.rowCount) throw new AuthError('USERNAME_EXISTS', '此使用者名稱已被使用')
+    const existingDisplayName = await playlogPool.query(
+      'SELECT 1 FROM profiles WHERE lower(btrim(display_name)) = lower(btrim($1)) LIMIT 1',
+      [input.username],
+    )
+    if (existingDisplayName.rowCount) throw new AuthError('USERNAME_EXISTS', '此使用者名稱已被使用')
 
     const existingEmail = await client.query('SELECT 1 FROM user_credentials WHERE email = $1 LIMIT 1', [input.email])
     if (existingEmail.rowCount) throw new AuthError('EMAIL_EXISTS', '此 Email 已被使用')

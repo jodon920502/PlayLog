@@ -12,6 +12,7 @@ interface AuthResponse {
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 let accessToken: string | null = null
+let refreshRequest: Promise<{ user: AuthUser; accessToken: string }> | null = null
 
 export function getAccessToken(): string | null {
   return accessToken
@@ -19,6 +20,28 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   accessToken = token
+}
+
+export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const initialHeaders = new Headers(init.headers)
+  const initialAuthorization = initialHeaders.get('Authorization')
+  const initialToken = initialAuthorization?.replace(/^Bearer\s+/i, '') || getAccessToken()
+
+  const request = (token: string | null) => {
+    const headers = new Headers(init.headers)
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+    return fetch(input, { ...init, headers })
+  }
+
+  const response = await request(initialToken)
+  if (response.status !== 401 || init.signal?.aborted) {
+    return response
+  }
+
+  const session = await refresh()
+  return request(session.accessToken)
 }
 
 async function requestAuth(path: string, body: Record<string, string>): Promise<{ user: AuthUser; accessToken: string }> {
@@ -58,14 +81,22 @@ export function register(username: string, email: string, password: string) {
 }
 
 export async function refresh(): Promise<{ user: AuthUser; accessToken: string }> {
-  const response = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
-  const data = await response.json() as AuthResponse
-  if (!response.ok || !data.success || !data.user || !data.accessToken) {
-    throw new Error(data.message ?? '登入狀態已失效')
-  }
+  if (refreshRequest) return refreshRequest
+  refreshRequest = (async () => {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+    const data = await response.json() as AuthResponse
+    if (!response.ok || !data.success || !data.user || !data.accessToken) {
+      throw new Error(data.message ?? '登入狀態已失效')
+    }
 
-  setAccessToken(data.accessToken)
-  return { user: data.user, accessToken: data.accessToken }
+    setAccessToken(data.accessToken)
+    return { user: data.user, accessToken: data.accessToken }
+  })()
+  try {
+    return await refreshRequest
+  } finally {
+    refreshRequest = null
+  }
 }
 
 export async function logout(): Promise<void> {

@@ -4,9 +4,12 @@ import express from 'express'
 import { pool } from './config/db.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import profileRoutes from './modules/profiles/profile.routes.js'
+import playerRoutes from './modules/profiles/player.routes.js'
 import gameRoutes from './modules/games/game.routes.js'
 import gameReviewRoutes from './modules/reviews/game-review.routes.js'
 import reviewRoutes from './modules/reviews/review.routes.js'
+import homeRoutes from './modules/home/home.routes.js'
+import favoriteRoutes from './modules/favorites/favorite.routes.js'
 
 const app = express()
 const PORT = 3000
@@ -31,9 +34,12 @@ app.get('/api/db-test', async (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', profileRoutes)
+app.use('/api/players', playerRoutes)
 app.use('/api/games', gameReviewRoutes)
 app.use('/api/games', gameRoutes)
 app.use('/api/reviews', reviewRoutes)
+app.use('/api/home', homeRoutes)
+app.use('/api/favorites', favoriteRoutes)
 
 app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (error instanceof SyntaxError && 'status' in error && error.status === 400) {

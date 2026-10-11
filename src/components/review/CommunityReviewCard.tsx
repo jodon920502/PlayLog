@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import UserAvatar from '../user/UserAvatar'
 import type { CommunityReview } from '../../services/reviewService'
 
@@ -27,15 +28,24 @@ export default function CommunityReviewCard({
     <article className="rounded-xl border border-white/[.07] bg-[#151821] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <UserAvatar src={avatar} name={review.author.displayName} size="sm" />
-          <div>
+          {review.author.profileId ? <Link to={`/profile/${review.author.profileId}`} state={{ from: `/game/${review.gameId}` }} className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c544]">
+            <UserAvatar src={avatar} name={review.author.displayName} size="sm" />
+            <div>
+              <h3 className="text-sm font-semibold text-[#eeece5] transition hover:text-[#f2c544]">{review.author.displayName}</h3>
+              <div className="flex flex-wrap gap-x-2 text-[11px] text-[#777b86]">
+                <span>發表於 {formatDate(createdAt)}</span>
+                {wasEdited && <span>編輯於 {formatDate(updatedAt)} · 已編輯</span>}
+                {isNew && <span className="text-[#f2c544]">新評論</span>}
+              </div>
+            </div>
+          </Link> : <><UserAvatar src={avatar} name={review.author.displayName} size="sm" /><div>
             <h3 className="text-sm font-semibold text-[#eeece5]">{review.author.displayName}</h3>
             <div className="flex flex-wrap gap-x-2 text-[11px] text-[#777b86]">
               <span>發表於 {formatDate(createdAt)}</span>
               {wasEdited && <span>編輯於 {formatDate(updatedAt)} · 已編輯</span>}
               {isNew && <span className="text-[#f2c544]">新評論</span>}
             </div>
-          </div>
+          </div></>}
         </div>
         {isOwner && <div className="flex gap-2">
           <button type="button" onClick={onEdit} className="text-[#777b86] hover:text-[#f2c544]" aria-label="編輯評論"><Pencil size={15} /></button>
