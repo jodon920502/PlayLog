@@ -7,6 +7,9 @@
     "dev": "vite",
     "dev:backend": "npm --prefix Backend run dev",
     "dev:all": "concurrently -n FRONTEND,BACKEND \"npm run dev\" \"npm run dev:backend\"",
+    "build:all": "npm run build && npm --prefix Backend run build",
+    "start:all": "concurrently -n FRONTEND,BACKEND \"npm run preview\" \"npm --prefix Backend start\"",
+    "serve:all": "npm run build:all && npm run start:all",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -28,6 +31,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
+    "dotenv-cli": "^11.0.0",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"

@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "dotenv run -f .env -- tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "dotenv run -f .env.production -- node dist/server.js"
   },
   "keywords": [],
   "author": "",

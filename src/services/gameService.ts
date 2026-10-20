@@ -1,7 +1,7 @@
 import { games as mockGames } from '../data/mockGames'
 import type { Game } from '../types/game'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 interface GameApiResponse {
   success: boolean

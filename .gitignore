@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 Backend/.env
+Backend/.env.production
+.env.development
+.env.production
