@@ -1,104 +1,145 @@
-
 # PlayLog
 
-[繁體中文](README.md) | [English](README.en.md)
+[繁體中文](README.md) | [English](README_EN.md)
 
-**PlayLog** is a game discovery, review, and player community website. Players can explore games, browse community ratings and rankings, publish reviews, save favorites, manage a personal game library, and showcase their activity on public profiles.
+**PlayLog** is a game discovery, review, and community platform. Players can search for games, explore community ratings and rankings, write reviews, manage favorites and personal game libraries, and showcase their gaming activity through customizable profiles.
 
-> This project remains under active development. Local development and testing support does not imply a publicly launched service.
+🌐 **Live Website: [playlog.yosora.dev](https://playlog.yosora.dev)**
+
+> **Status: Public Beta**
+>
+> PlayLog is under active development. Features may change, and test accounts, reviews, and other user data may be reset before the official release. The public beta does not represent a final production release.
 
 ## Features
 
-| Feature | Current status |
+| Feature | Status |
 | --- | --- |
-| Game search, import, and detail pages | Implemented |
-| IGDB game data and Steam information integration | Implemented |
+| Game search, import, and detailed information | Implemented |
+| IGDB and Steam data integration | Implemented |
 | Localized game titles and descriptions | Implemented |
-| Account login, JWT access tokens, and refresh-token sessions | Implemented |
-| Player profiles, avatars, banners, and bios | Implemented |
-| Ratings (0.5–5.0 in 0.5 increments) | Implemented |
-| Optional written reviews (rating-only submissions supported) | Implemented |
-| Create, edit, delete reviews and average ratings | Implemented |
-| Review publication/edit timestamps and status labels | Implemented |
-| Public review lists on profiles with paginated loading | Implemented |
-| Public review feed, sorting, and pagination | Implemented |
-| Game rankings calculated from PlayLog user reviews | Implemented |
-| Game favorites and favorites list | Implemented |
-| Personal game library with five play statuses (wishlist, playing, completed, paused, dropped) | Implemented |
-| Game library status counts, filtering, and pagination | Implemented |
-| Public/private game library settings (backend-enforced access) | Implemented |
-| Profile tabs for reviews, game library, and favorites | Implemented |
-| Responsive UI, page SEO, Open Graph, logo, and favicon | Implemented |
+| Authentication with JWT access tokens and refresh token sessions | Implemented |
+| Player profiles, avatars, banners, and biographies | Implemented |
+| Game ratings from 0.5 to 5.0 in 0.5 increments | Implemented |
+| Optional written reviews | Implemented |
+| Create, edit, and delete reviews | Implemented |
+| Average rating calculations | Implemented |
+| Review timestamps and edit indicators | Implemented |
+| Public profile reviews with pagination | Implemented |
+| Community review lists, sorting, and pagination | Implemented |
+| Game rankings based on PlayLog user reviews | Implemented |
+| Game favorites and favorite lists | Implemented |
+| Personal game library and play statuses | Implemented |
+| Library statistics, filters, and pagination | Implemented |
+| Public/private game library settings with backend authorization | Implemented |
+| Profile tabs for reviews, library, and favorites | Implemented |
+| Responsive UI, SEO, Open Graph, logo, and favicon | Implemented |
+| Rate limiting for authentication and selected APIs | Implemented |
 
-### Review rules
+### Review Rules
 
-- Everyone can read public reviews; **sign-in is required to create, edit, or delete** a review.
-- Each player may have **one review per game**, which they can edit repeatedly.
-- Players may submit a rating alone or include up to **5,000 characters** of written feedback.
-- Ratings range from **0.5 to 5.0**, in **0.5** increments.
-- Players can edit or delete only their own reviews; authorization is enforced by the backend.
-- Games with reviews are protected by an `ON DELETE RESTRICT` foreign key to prevent accidental loss of reviews when a game is deleted.
+- Anyone can read public reviews, but authentication is required to create, update, or delete reviews.
+- Each player may have only **one review per game**, which can be updated.
+- Written reviews are optional and limited to **5,000 characters**.
+- Ratings range from **0.5 to 5.0**, in increments of **0.5**.
+- Players may edit or delete only their own reviews. Permissions are enforced by the backend.
+- Games with existing reviews are protected by an `ON DELETE RESTRICT` foreign key constraint.
 
-## Tech stack
+## Tech Stack
 
-| Layer | Technology |
+| Layer | Technologies |
 | --- | --- |
 | Frontend | React, TypeScript, Vite, Tailwind CSS, React Router |
 | Backend | Node.js, Express 5, TypeScript |
-| Database | PostgreSQL 16 (Docker for development) |
-| Authentication | Argon2id, JWT access tokens, HttpOnly refresh-token cookies |
-| External data | IGDB API, Steam API |
-| Database client | `pg` (node-postgres) |
+| Database | PostgreSQL 16 |
+| Authentication | Argon2id, JWT Access Tokens, HttpOnly Refresh Token Cookies |
+| API Security | Rate Limiting, Trusted Proxy Configuration |
+| External Data | IGDB API, Steam API |
+| Database Client | `pg` (node-postgres) |
+| Deployment | Docker, Caddy Reverse Proxy |
+| Domain & HTTPS | Cloudflare DNS, Cloudflare Tunnel |
 
-### Project structure
+### Public Beta Deployment
+
+PlayLog is accessible over HTTPS through Cloudflare Tunnel.
+
+```text
+Browser
+   |
+   | HTTPS
+   v
+Cloudflare
+   |
+   | Cloudflare Tunnel
+   v
+Caddy Reverse Proxy
+   |              |
+   v              v
+React Frontend   Express Backend
+                       |
+                       v
+                  PostgreSQL
+```
+
+- The frontend is served as a static web application.
+- Caddy serves frontend assets and reverse-proxies `/api/*` requests.
+- The backend handles authentication, game data, reviews, and other APIs.
+- PostgreSQL stores account, game, and player data.
+- Cloudflare Tunnel provides public HTTPS access without directly exposing backend or database ports to the internet.
+
+Private deployment configurations and credentials are not included in the public repository.
+
+### Project Structure
 
 ```text
 PlayLog/
 ├── src/                       # React frontend
+│   ├── pages/
+│   └── components/
 ├── Backend/
 │   ├── src/
 │   │   ├── config/            # Database configuration
-│   │   ├── middleware/        # Authentication middleware
-│   │   ├── modules/           # auth / games / profiles / reviews / game-statuses, etc.
+│   │   ├── middleware/        # Authentication and rate limiting
+│   │   ├── modules/           # Auth, games, profiles, reviews, etc.
 │   │   └── integrations/      # IGDB / Steam
 │   ├── database/
-│   │   ├── README.md          # Database setup guide
+│   │   ├── README.md
 │   │   ├── schemas/
 │   │   │   ├── account_db.sql
 │   │   │   └── playlog_db.sql
 │   │   └── migrations/
-│   │       └── playlog_db/
-│   │           ├── 001_create_reviews.sql
-│   │           ├── ...                 # Historical migrations, including favorites
-│   │           ├── 005_create_user_game_statuses.sql
-│   │           └── 006_add_game_library_privacy.sql
 │   └── package.json
-├── public/images/             # PlayLog icons and favicons
-├── src/pages/                 # Pages including LibraryPage
-├── src/components/seo/        # SEO component
+├── public/images/             # Icons / Favicon
 ├── package.json
 ├── README.md
 └── README.en.md
 ```
 
-## Database design
+## Database Design
 
-The project uses **two separate PostgreSQL databases**, keeping account data separate from website content.
+PlayLog uses **two separate PostgreSQL databases** to separate authentication data from application content.
 
-| Database | Tables | Purpose |
+| Database | Main Tables | Purpose |
 | --- | --- | --- |
 | `account_db` | `users`, `user_credentials`, `user_sessions` | Accounts, credentials, and sessions |
-| `playlog_db` | `games`, `game_external_ids`, `game_localizations`, `genres`, `game_genres`, `platforms`, `game_platforms`, `profiles`, `reviews`, `game_favorites`, `user_game_statuses` | Games, genres, platforms, profiles, reviews, favorites, and game libraries |
+| `playlog_db` | `games`, `game_external_ids`, `game_localizations`, `genres`, `game_genres`, `platforms`, `game_platforms`, `profiles`, `reviews`, `game_favorites`, `user_game_statuses` | Games, categories, platforms, profiles, reviews, favorites, and libraries |
 
-The two `schemas/*.sql` files were exported with PostgreSQL 16.15 using `pg_dump --schema-only --no-owner --no-privileges`. They include tables, indexes, constraints, functions, and triggers, but **no actual data rows**. There are no cross-database foreign keys between the two databases.
+The `schemas/*.sql` files were exported from PostgreSQL 16.15 using:
 
-## Local development
+```bash
+pg_dump --schema-only --no-owner --no-privileges
+```
 
-### Prerequisites
+These files contain tables, indexes, constraints, functions, and triggers, but **no actual data rows**.
 
-- Node.js and npm (check the project's actual `package.json` for version requirements)
-- PostgreSQL 16 (Docker is supported)
-- API configuration for IGDB / Steam integrations, depending on the features enabled
+Cross-database foreign keys are not used.
+
+## Local Development
+
+### Requirements
+
+- Node.js and npm (refer to the project's `package.json`)
+- PostgreSQL 16 (Docker can be used)
+- IGDB and Steam API configuration, depending on enabled integrations
 
 ### Installation
 
@@ -109,33 +150,37 @@ npm install
 npm --prefix Backend install
 ```
 
-Prepare `Backend/.env` according to `Backend/src/config/db.ts` and the project's environment configuration. Configure connections to both databases, authentication secrets, and external API credentials. **Never commit `.env` to GitHub.** Refer to the current source code for exact environment variable names.
+Configure `Backend/.env` according to `Backend/src/config/db.ts` and the current project settings.
 
-### Database initialization
+Database credentials, authentication secrets, and external API credentials must be configured locally.
 
-Create empty `account_db` and `playlog_db` databases first, then load their schemas using PostgreSQL `psql`. Example for an environment with `psql` installed and database credentials configured:
+**Never commit `.env`, passwords, API keys, or tokens to GitHub.**
+
+### Database Initialization
+
+Create empty `account_db` and `playlog_db` databases, then import the corresponding schemas:
 
 ```powershell
 psql -h localhost -U YOUR_DB_USER -d account_db -f Backend/database/schemas/account_db.sql
 psql -h localhost -U YOUR_DB_USER -d playlog_db -f Backend/database/schemas/playlog_db.sql
 ```
 
-> Replace `YOUR_DB_USER` with a role that has permission to create database objects. If PostgreSQL runs only inside Docker, use `docker cp` to copy the SQL files and `docker exec ... psql -f` to apply them. See [`Backend/database/README.md`](Backend/database/README.md).
->
-> **Important:** The full `playlog_db.sql` is a snapshot of the current database structure. After initializing from it, **do not rerun migrations already included in the schema**, including reviews, favorites, game statuses, and privacy fields. Migrations are intended to upgrade existing databases; check the current schema before applying them.
+Replace `YOUR_DB_USER` with a PostgreSQL user that has sufficient permissions.
 
-### Run locally
+See [`Backend/database/README.md`](Backend/database/README.md) for more information.
+
+> **Important:** The full `playlog_db.sql` file represents a snapshot of the current database schema. Do not reapply migrations already included in the snapshot. Migrations are intended for upgrading existing databases.
+
+### Start Development Servers
 
 ```bash
 npm run dev:all
 ```
 
-Default development endpoints:
+Default frontend development URL:
 
 - Frontend: `http://localhost:5173`
-- Backend: `http://localhost:3000`
-
-If your `package.json`, environment configuration, or ports have changed, follow the current project configuration.
+- Backend: determined by the current environment and project configuration
 
 ### Build
 
@@ -144,27 +189,45 @@ npm run build
 npm --prefix Backend run build
 ```
 
-## Main API endpoints (selected)
+## API Overview
 
-| Method | Path | Purpose |
+| Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET` | `/api/games/search?q=...` | Search games |
-| `GET` | `/api/games/:gameId/reviews` | List reviews for a game |
-| `GET` | `/api/games/:gameId/rating-summary` | Retrieve rating summary |
-| `POST` | `/api/games/:gameId/reviews` | Publish a review (sign-in required) |
-| `PATCH` | `/api/reviews/:reviewId` | Edit your own review |
-| `DELETE` | `/api/reviews/:reviewId` | Delete your own review |
-| `GET` | `/api/profile/:profileId/reviews` | List a player's public reviews (`limit` / `offset` supported) |
+| `GET` | `/api/games/:gameId/reviews` | Get game reviews |
+| `GET` | `/api/games/:gameId/rating-summary` | Get rating statistics |
+| `POST` | `/api/games/:gameId/reviews` | Create a review (authentication required) |
+| `PATCH` | `/api/reviews/:reviewId` | Update your review |
+| `DELETE` | `/api/reviews/:reviewId` | Delete your review |
+| `GET` | `/api/profile/:profileId/reviews` | Get public profile reviews |
 
-Favorites, game statuses, and profile game libraries have additional APIs. These are selected known endpoints; consult the backend route implementations for exact paths, parameters, and response formats.
+Additional APIs support favorites, game statuses, personal libraries, and authentication.
 
-## Development and data security
+For complete endpoint definitions, parameters, and response formats, refer to the backend implementation.
 
-- Schema files contain structure only; restoring them does not restore existing accounts, games, or reviews.
-- Never commit `.env`, API keys, JWT secrets, database passwords, tokens, or database backups containing real data.
-- Preserve new migrations for future schema changes and update schema snapshots as part of the project's maintenance workflow.
-- Schema exports and build checks have been completed, but a **full restore into a fresh PostgreSQL environment has not yet been verified**.
+## Development and Data Security
 
-## Project status
+- Schema files contain database structures only, not actual account, game, or review data.
+- Never commit `.env` files, API keys, JWT secrets, database passwords, Tunnel tokens, or database backups.
+- Refresh tokens are stored in HttpOnly cookies.
+- Authentication and selected API endpoints use rate limiting.
+- PostgreSQL is not directly exposed to the public internet.
+- Database changes should be tracked through migrations, with schema snapshots updated as needed.
+- A complete schema restoration test on a fresh PostgreSQL instance has not yet been completed.
 
-PlayLog is an actively developed personal project covering game discovery, community reviews, rankings, favorites, personal game libraries, and player profiles. Potential future features include player interactions and game statistics; these are not yet implemented.
+## Project Status and Roadmap
+
+**Current Status: Public Beta**
+
+PlayLog is publicly accessible for testing and currently includes game discovery, reviews, rankings, favorites, personal game libraries, and player profiles.
+
+Potential future improvements include:
+
+- User experience and responsive design enhancements
+- Additional player interactions and community features
+- Improved game statistics and data presentation
+- System reliability and security improvements
+
+These are development directions, not guarantees of completed features.
+
+**Try PlayLog: [https://playlog.yosora.dev](https://playlog.yosora.dev)**

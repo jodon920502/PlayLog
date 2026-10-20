@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { ProfileError, searchPlayers } from './profile.service.js'
+import { playerSearchRateLimit } from '../../middleware/rate-limit.middleware.js'
 
 const router = Router()
 
-router.get('/search', async (req, res) => {
+router.get('/search', playerSearchRateLimit, async (req, res) => {
   try {
     const result = await searchPlayers(req.query.q, req.query.limit, req.query.offset)
     res.json({

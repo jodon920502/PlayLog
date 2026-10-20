@@ -3,6 +3,7 @@ import { AuthError, createLoginSession, getActiveUser, loginUser, refreshLoginSe
 import { requireAuth } from '../../middleware/auth.middleware.js'
 import { REFRESH_TOKEN_TTL_MS } from './token.service.js'
 import { displayNameValidationMessage, isValidDisplayName } from '../../utils/displayName.js'
+import { loginRateLimit, refreshRateLimit, registerRateLimit } from '../../middleware/rate-limit.middleware.js'
 
 const router = Router()
 
@@ -24,7 +25,7 @@ function validateCredentials(body: unknown): { email: string; password: string }
   return { email: email.trim().toLowerCase(), password }
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerRateLimit, async (req, res) => {
   const body = req.body as Record<string, unknown> | undefined
   const username = typeof body?.username === 'string' ? body.username : ''
   const credentials = validateCredentials(body)
@@ -40,7 +41,7 @@ router.post('/register', async (req, res) => {
   }
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimit, async (req, res) => {
   const credentials = validateCredentials(req.body)
   if (typeof credentials === 'string') {
     res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: credentials })
@@ -61,7 +62,7 @@ router.post('/login', async (req, res) => {
   }
 })
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', refreshRateLimit, async (req, res) => {
   const refreshToken = req.cookies?.refresh_token
   if (typeof refreshToken !== 'string' || !refreshToken) {
     res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: '登入狀態已失效' })

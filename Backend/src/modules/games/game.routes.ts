@@ -2,10 +2,11 @@ import { Router } from 'express'
 import { GameNotFoundError, getGameById, getGameFilterOptions, importGameFromIgdb, searchLocalGames, type LocalGameSearchOptions, type LocalGameSort } from './game.service.js'
 import { getSteamAppIdByIgdbId, IgdbServiceError, searchGames } from '../../integrations/igdb.service.js'
 import { getSteamStoreLocalization, SteamLanguageValidationError, SteamServiceError, SteamValidationError } from '../../integrations/steam.service.js'
+import { externalGameSearchRateLimit, gameImportRateLimit } from '../../middleware/rate-limit.middleware.js'
 
 const router = Router()
 
-router.get('/external/search', async (req, res) => {
+router.get('/external/search', externalGameSearchRateLimit, async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : ''
   if (!query) {
     res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: '請提供搜尋關鍵字' })
@@ -80,7 +81,7 @@ router.get('/filters', async (_req, res) => {
   }
 })
 
-router.post('/import', async (req, res) => {
+router.post('/import', gameImportRateLimit, async (req, res) => {
   const igdbId = req.body && typeof req.body === 'object' ? req.body.igdbId : undefined
   if (typeof igdbId !== 'number' || !Number.isSafeInteger(igdbId) || igdbId <= 0) {
     res.status(400).json({ success: false, code: 'VALIDATION_ERROR', message: 'igdbId 必須是正整數' })

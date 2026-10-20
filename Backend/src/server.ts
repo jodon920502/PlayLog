@@ -1,6 +1,7 @@
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
+import proxyaddr from "proxy-addr";
 import { pool } from "./config/db.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import profileRoutes from "./modules/profiles/profile.routes.js";
@@ -16,6 +17,17 @@ import gameStatusRoutes from "./modules/game-statuses/game-status.routes.js";
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+const trustedProxyCidrs = (process.env.TRUSTED_PROXY_CIDRS || "172.23.0.0/16")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const isTrustedProductionProxy = proxyaddr.compile(trustedProxyCidrs);
+
+app.set(
+  "trust proxy",
+  process.env.NODE_ENV === "production" ? isTrustedProductionProxy : false,
+);
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:4173",
@@ -28,20 +40,21 @@ app.use(cookieParser());
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "PlayLog API is running" });
 });
-
-app.get("/api/db-test", async (_req, res) => {
-  try {
-    const result = await pool.query<{ database: string }>(
-      "SELECT current_database() AS database",
-    );
-    res.json({ status: "ok", database: result.rows[0]?.database });
-  } catch (error) {
-    console.error("Database connection failed", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Database connection failed" });
-  }
-});
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/db-test", async (_req, res) => {
+    try {
+      const result = await pool.query<{ database: string }>(
+        "SELECT current_database() AS database",
+      );
+      res.json({ status: "ok", database: result.rows[0]?.database });
+    } catch (error) {
+      console.error("Database connection failed", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Database connection failed" });
+    }
+  });
+}
 
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);

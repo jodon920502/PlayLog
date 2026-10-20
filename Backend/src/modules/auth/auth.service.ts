@@ -105,7 +105,7 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
 }
 
 function requestIp(request: Request): string | null {
-  const candidate = request.socket.remoteAddress ?? request.ip
+  const candidate = request.ip ?? request.socket.remoteAddress
   if (!candidate || !isIP(candidate)) return null
   return candidate.startsWith('::ffff:') ? candidate.slice(7) : candidate
 }
