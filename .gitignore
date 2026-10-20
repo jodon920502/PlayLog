@@ -25,5 +25,9 @@ dist-ssr
 
 Backend/.env
 Backend/.env.production
+Backend/Dockerfile
+Backend/.dockerignore
 .env.development
 .env.production
+compose.yaml
+.env.docker
